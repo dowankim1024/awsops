@@ -1,33 +1,15 @@
 // FossFLOW isometric model generator.
 // TS port of dac-poc/generate_fossflow.py — builds a FossFLOW-importable
-// model JSON from the same /api/steampipe relationship query results the
-// topology map uses. Layout is computed on a logical tile grid (x = column,
-// y = row) that FossFLOW renders rotated 45 degrees.
+// model JSON from a TopologyGraph (src/lib/topology/types.ts). Steampipe rows
+// are turned into that graph by src/lib/topology/adapters/live.ts; this file no
+// longer knows any column names. Layout is computed on a logical tile grid
+// (x = column, y = row) that FossFLOW renders rotated 45 degrees.
+// TopologyGraph만 입력으로 받는다. Steampipe 컬럼은 어댑터가 처리한다.
 import { fossflowIcons } from './icons';
+import type { TopologyGraph, TopologyNode, TopologySubnet } from '@/lib/topology/types';
 
 interface Row {
   [key: string]: any;
-}
-
-export interface TopologyData {
-  vpcSubnets: Row[];
-  ec2: Row[];
-  elb: Row[];
-  nat: Row[];
-  routeTables: Row[];
-  targetGroups: Row[];
-  igw?: Row[];
-  tgw?: Row[];
-  rds?: Row[];
-  elasticache?: Row[];
-  msk?: Row[];
-  opensearch?: Row[];
-  lambdaVpc?: Row[];
-  vpcEndpoints?: Row[];
-  s3?: Row[];
-  dynamodb?: Row[];
-  cloudfront?: Row[];
-  route53?: Row[];
 }
 
 // Layer toggles the topology chat can flip. VPC-scoped layers default to
@@ -90,36 +72,21 @@ function shortId(rid: string | null | undefined): string {
   return idx > 0 ? `${s.slice(0, idx)}-${s.slice(idx + 1, idx + 7)}` : s;
 }
 
-function ipv4ToInt(ip: string): number | null {
-  const m = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (!m) return null;
-  const parts = m.slice(1).map(Number);
-  if (parts.some((p) => p > 255)) return null;
-  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
-}
+const metaStr = (n: TopologyNode, key: string): string => {
+  const v = n.meta[key];
+  return typeof v === 'string' ? v : '';
+};
+const metaList = (n: TopologyNode, key: string): string[] => {
+  const v = n.meta[key];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+};
 
-function ipInCidr(ip: string, cidr: string): boolean {
-  const [net, bitsStr] = cidr.split('/');
-  const ipInt = ipv4ToInt(ip);
-  const netInt = ipv4ToInt(net);
-  const bits = Number(bitsStr);
-  if (ipInt === null || netInt === null || !(bits >= 0 && bits <= 32)) return false;
-  const mask = bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
-  return (ipInt & mask) === (netInt & mask);
-}
-
-export function listVpcs(vpcSubnets: Row[]): { vpcId: string; name: string; cidr: string }[] {
-  const seen = new Map<string, { vpcId: string; name: string; cidr: string }>();
-  vpcSubnets.forEach((r) => {
-    if (r.vpc_id && !seen.has(r.vpc_id)) {
-      seen.set(r.vpc_id, { vpcId: r.vpc_id, name: r.vpc_name || r.vpc_id, cidr: r.vpc_cidr || '' });
-    }
-  });
-  return Array.from(seen.values());
+export function listVpcs(graph: TopologyGraph): TopologyGraph['vpcs'] {
+  return graph.vpcs;
 }
 
 export function buildFossflowModel(
-  data: TopologyData,
+  graph: TopologyGraph,
   vpcFilter: string,
   opts: TopologyOptions = {}
 ): FossflowModel | null {
@@ -140,92 +107,54 @@ export function buildFossflowModel(
     cloudfront: opts.showCloudfront === true,
     route53: opts.showRoute53 === true,
   };
-  const vpcMeta = new Map<string, Row>();
-  data.vpcSubnets.forEach((r) => {
-    if (r.vpc_id && !vpcMeta.has(r.vpc_id)) vpcMeta.set(r.vpc_id, r);
-  });
-  const vpcId = Array.from(vpcMeta.keys()).find(
-    (v) => v === vpcFilter || vpcMeta.get(v)?.vpc_name === vpcFilter
-  );
-  if (!vpcId) return null;
-  const meta = vpcMeta.get(vpcId)!;
-  const vpcName = meta.vpc_name || vpcId;
-  const vpcCidr = meta.vpc_cidr || '';
+  const vpc = graph.vpcs.find((v) => v.id === vpcFilter || v.name === vpcFilter);
+  if (!vpc) return null;
+  const vpcId = vpc.id;
+  const vpcName = vpc.name;
+  const vpcCidr = vpc.cidr;
 
-  const vEc2 = data.ec2.filter((r) => r.vpc_id === vpcId && r.instance_state !== 'terminated');
-  const vElb = data.elb.filter((r) => r.vpc_id === vpcId);
-  const vNat = data.nat.filter((r) => r.vpc_id === vpcId);
-  const vIgw = show.igw ? (data.igw || []).filter((r) => r.vpc_id === vpcId) : [];
-  const vTgw = show.tgw
-    ? (data.tgw || []).filter((r) => r.resource_id === vpcId && r.state !== 'deleted')
-    : [];
-  const vRds = show.rds ? (data.rds || []).filter((r) => r.vpc_id === vpcId) : [];
-  const vCache = show.elasticache
-    ? (data.elasticache || []).filter((r) => r.vpc_id === vpcId)
-    : [];
-  const vLambda = show.lambda
-    ? (data.lambdaVpc || []).filter((r) => r.vpc_id === vpcId)
-    : [];
-  const vEndpoints = show.endpoints
-    ? (data.vpcEndpoints || []).filter((r) => r.vpc_id === vpcId)
-    : [];
-  const vSubnets = data.vpcSubnets.filter((s) => s.vpc_id === vpcId && s.subnet_id);
+  const inVpc = graph.nodes.filter((n) => n.vpcId === vpcId);
+  const ofKind = (...kinds: TopologyNode['kind'][]) => inVpc.filter((n) => kinds.includes(n.kind));
+  const globalOfKind = (kind: TopologyNode['kind']) =>
+    graph.nodes.filter((n) => n.vpcId === undefined && n.kind === kind);
 
-  // ---- public/private via route tables ----
-  const subnetRtb = new Map<string, Row>();
-  const mainRtb = new Map<string, Row>();
-  data.routeTables.forEach((rt) => {
-    (rt.associations || []).forEach((a: Row) => {
-      if (a.SubnetId) subnetRtb.set(a.SubnetId, rt);
-      if (a.Main) mainRtb.set(rt.vpc_id, rt);
-    });
-  });
-  const isPublic = (sid: string, mapPublic: any): boolean => {
-    const rt = subnetRtb.get(sid) || mainRtb.get(vpcId);
-    if (rt) return (rt.routes || []).some((r: Row) => (r.GatewayId || '').startsWith('igw-'));
-    return Boolean(mapPublic);
-  };
+  const vEc2 = ofKind('ec2');
+  const vElb = ofKind('alb', 'nlb');
+  const vNat = ofKind('nat');
+  const vIgw = show.igw ? ofKind('igw') : [];
+  const vTgw = show.tgw ? ofKind('tgw') : [];
+  const vRds = show.rds ? ofKind('rds') : [];
+  const vCache = show.elasticache ? ofKind('elasticache') : [];
+  const vLambda = show.lambda ? ofKind('lambda') : [];
+  const vEndpoints = show.endpoints ? ofKind('endpoint') : [];
+  const vSubnets = graph.subnets.filter((s) => s.vpcId === vpcId);
 
-  const subnetAz = new Map<string, string>();
-  vSubnets.forEach((s) => subnetAz.set(s.subnet_id, s.availability_zone || ''));
   const azSuffix = (az: string) => (az ? az.split('-').pop() : '?');
-  const natLabel = (r: Row) =>
-    vNat.length > 1 ? `NAT GW (${azSuffix(subnetAz.get(r.subnet_id) || '')})` : 'NAT GW';
+  const natLabel = (n: TopologyNode) =>
+    vNat.length > 1 ? `NAT GW (${azSuffix(n.az || '')})` : 'NAT GW';
 
   // ---- subnet grid (AZ x tier) ----
-  const ec2InSubnet = new Map<string, Row[]>();
-  vEc2.forEach((r) => {
-    if (!ec2InSubnet.has(r.subnet_id)) ec2InSubnet.set(r.subnet_id, []);
-    ec2InSubnet.get(r.subnet_id)!.push(r);
-  });
-  const natInSubnet = new Map<string, Row[]>();
-  vNat.forEach((r) => {
-    if (!natInSubnet.has(r.subnet_id)) natInSubnet.set(r.subnet_id, []);
-    natInSubnet.get(r.subnet_id)!.push(r);
-  });
-
+  const groupBySubnet = (list: TopologyNode[]) => {
+    const m = new Map<string, TopologyNode[]>();
+    list.forEach((n) => {
+      if (!n.subnetId) return;
+      if (!m.has(n.subnetId)) m.set(n.subnetId, []);
+      m.get(n.subnetId)!.push(n);
+    });
+    return m;
+  };
+  const ec2InSubnet = groupBySubnet(vEc2);
+  const natInSubnet = groupBySubnet(vNat);
   // VPC Lambdas live inside their subnets (capped per subnet to keep boxes sane)
   // VPC 람다는 소속 서브넷 안에 배치 (서브넷당 상한)
-  const subnetIdsOf = (v: any): string[] =>
-    Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
   const LAMBDA_CAP = 6;
-  const lambdaInSubnet = new Map<string, Row[]>();
-  vLambda.forEach((r) => {
-    const sid = subnetIdsOf(r.vpc_subnet_ids)[0];
-    if (!sid) return;
-    if (!lambdaInSubnet.has(sid)) lambdaInSubnet.set(sid, []);
-    lambdaInSubnet.get(sid)!.push(r);
-  });
+  const lambdaInSubnet = groupBySubnet(vLambda);
 
-  const grid = new Map<string, { public: Row[]; private: Row[] }>();
+  const grid = new Map<string, { public: TopologySubnet[]; private: TopologySubnet[] }>();
   [...vSubnets]
-    .sort((a, b) =>
-      `${a.availability_zone || ''}${a.subnet_id}`.localeCompare(
-        `${b.availability_zone || ''}${b.subnet_id}`
-      )
-    )
+    .sort((a, b) => `${a.az}${a.id}`.localeCompare(`${b.az}${b.id}`))
     .forEach((s) => {
-      const sid = s.subnet_id;
+      const sid = s.id;
       if (
         !ec2InSubnet.get(sid)?.length &&
         !natInSubnet.get(sid)?.length &&
@@ -233,10 +162,9 @@ export function buildFossflowModel(
         !opts.includeEmpty
       )
         return;
-      const az = s.availability_zone || 'unknown';
+      const az = s.az || 'unknown';
       if (!grid.has(az)) grid.set(az, { public: [], private: [] });
-      const tier = isPublic(sid, s.map_public_ip_on_launch) ? 'public' : 'private';
-      grid.get(az)![tier].push(s);
+      grid.get(az)![s.tier].push(s);
     });
   // Managed data services join their AZ column as dedicated boxes.
   // AZ 귀속 매니지드 서비스는 AZ 칼럼에 전용 박스로 배치.
@@ -254,52 +182,42 @@ export function buildFossflowModel(
     if (!boxes.get(boxLabel)!.some((e) => e.id === entry.id)) boxes.get(boxLabel)!.push(entry);
     if (!grid.has(az)) grid.set(az, { public: [], private: [] });
   };
-  vRds.forEach((r) =>
-    addServiceEntry(r.availability_zone || 'unknown', 'RDS', {
-      id: `rds-${r.db_instance_identifier}`,
-      name: r.db_instance_identifier,
+  vRds.forEach((n) =>
+    addServiceEntry(n.az || 'unknown', 'RDS', {
+      id: `rds-${n.name}`,
+      name: n.name,
       icon: 'aws-rds',
-      desc: r.engine || '',
+      desc: metaStr(n, 'engine'),
     })
   );
-  vCache.forEach((r) =>
-    addServiceEntry(r.availability_zone || 'unknown', 'ElastiCache', {
-      id: `cache-${r.cache_cluster_id}`,
-      name: r.cache_cluster_id,
+  vCache.forEach((n) =>
+    addServiceEntry(n.az || 'unknown', 'ElastiCache', {
+      id: `cache-${n.name}`,
+      name: n.name,
       icon: 'aws-elasticache',
-      desc: r.engine || '',
+      desc: metaStr(n, 'engine'),
     })
   );
   if (show.msk) {
-    (data.msk || []).forEach((r) => {
-      const azsHit = new Set<string>();
-      subnetIdsOf(r.client_subnets).forEach((sid) => {
-        const az = subnetAz.get(sid);
-        if (az) azsHit.add(az);
-      });
-      azsHit.forEach((az) =>
+    ofKind('msk').forEach((n) => {
+      metaList(n, 'azs').forEach((az) =>
         addServiceEntry(az, 'MSK', {
-          id: `msk-${r.cluster_name}-${az}`,
-          name: r.cluster_name,
+          id: `msk-${n.name}-${az}`,
+          name: n.name,
           icon: 'aws-managed-streaming-for-apache-kafka',
-          desc: r.state || '',
+          desc: n.state || '',
         })
       );
     });
   }
   if (show.opensearch) {
-    (data.opensearch || []).forEach((r) => {
-      const azsHit = new Set<string>();
-      subnetIdsOf(r.subnet_ids).forEach((sid) => {
-        const az = subnetAz.get(sid);
-        if (az) azsHit.add(az);
-      });
-      azsHit.forEach((az) =>
+    ofKind('opensearch').forEach((n) => {
+      metaList(n, 'azs').forEach((az) =>
         addServiceEntry(az, 'OpenSearch', {
-          id: `os-${r.domain_name}-${az}`,
-          name: r.domain_name,
+          id: `os-${n.name}-${az}`,
+          name: n.name,
           icon: 'aws-opensearch-service',
-          desc: r.engine_version || '',
+          desc: metaStr(n, 'engineVersion'),
         })
       );
     });
@@ -307,49 +225,19 @@ export function buildFossflowModel(
 
   const azs = Array.from(grid.keys()).sort();
 
-  const subnetLabel = (s: Row) => {
-    const leaf = (s.subnet_name || s.subnet_id).split('/').pop();
-    return `${leaf} (${s.subnet_cidr || ''})`;
+  const subnetLabel = (s: TopologySubnet) => {
+    const leaf = s.name.split('/').pop();
+    return `${leaf} (${s.cidr})`;
   };
 
-  // ---- ALB target resolution ----
-  const subnetCidr = new Map<string, string>();
-  vSubnets.forEach((s) => {
-    if (s.subnet_cidr) subnetCidr.set(s.subnet_id, s.subnet_cidr);
+  // ---- ALB targets come from the graph's target edges ----
+  const targetsOf = new Map<string, string[]>();
+  graph.edges.forEach((e) => {
+    if (e.kind !== 'target') return;
+    if (!targetsOf.has(e.from)) targetsOf.set(e.from, []);
+    targetsOf.get(e.from)!.push(e.to);
   });
-  const instIds = new Set(vEc2.map((r) => r.instance_id));
-  const subnetContaining = (ip: string): string | null => {
-    for (const [sid, cidr] of Array.from(subnetCidr.entries())) {
-      if (ipInCidr(ip, cidr)) return sid;
-    }
-    return null;
-  };
-  const tgByLb = new Map<string, Row[]>();
-  data.targetGroups.forEach((tg) => {
-    (tg.load_balancer_arns || []).forEach((lb: string) => {
-      if (!tgByLb.has(lb)) tgByLb.set(lb, []);
-      tgByLb.get(lb)!.push(tg);
-    });
-  });
-  const resolveTargets = (arn: string): string[] => {
-    const out = new Set<string>();
-    (tgByLb.get(arn) || []).forEach((tg) => {
-      (tg.target_health_descriptions || []).forEach((thd: Row) => {
-        const tid = thd?.Target?.Id || '';
-        if (tid.startsWith('i-')) {
-          if (instIds.has(tid)) out.add(tid);
-        } else if (tid) {
-          const sid = subnetContaining(tid);
-          if (sid) {
-            const cands = ec2InSubnet.get(sid) || [];
-            const eks = cands.filter((c) => /eks|worker|node/i.test(c.name || ''));
-            (eks.length ? eks : cands).forEach((c) => out.add(c.instance_id));
-          }
-        }
-      });
-    });
-    return Array.from(out).sort();
-  };
+  const resolveTargets = (lbId: string): string[] => [...(targetsOf.get(lbId) || [])].sort();
 
   // ---- assemble model pieces ----
   const modelItems: Row[] = [];
@@ -393,31 +281,34 @@ export function buildFossflowModel(
 
   // Duplicate Name tags (e.g. ASG nodes) get an instance-id suffix so they stay distinguishable
   // 동일 Name 태그(ASG 노드 등)는 인스턴스 ID 접미사로 구분
+  const nameTag = (n: TopologyNode) => metaStr(n, 'nameTag');
   const nameCount = new Map<string, number>();
-  vEc2.forEach((r) => {
-    if (r.name) nameCount.set(r.name, (nameCount.get(r.name) || 0) + 1);
+  vEc2.forEach((n) => {
+    const tag = nameTag(n);
+    if (tag) nameCount.set(tag, (nameCount.get(tag) || 0) + 1);
   });
-  const ec2Label = (r: Row) => {
-    if (!r.name) return shortId(r.instance_id);
-    return (nameCount.get(r.name) || 0) > 1 ? `${r.name} (${shortId(r.instance_id)})` : r.name;
+  const ec2Label = (n: TopologyNode) => {
+    const tag = nameTag(n);
+    if (!tag) return shortId(n.id);
+    return (nameCount.get(tag) || 0) > 1 ? `${tag} (${shortId(n.id)})` : tag;
   };
 
   // Tile positions of EC2 nodes, kept for the EKS cluster overlay
   // EKS 클러스터 오버레이용 EC2 노드 타일 좌표 기록
   const ec2Tiles = new Map<string, { x: number; y: number; cluster: string | null }>();
 
-  const placeSubnet = (s: Row, ox: number, oy: number, tier: 'pub' | 'prv'): [number, number] => {
-    const sid = s.subnet_id;
+  const placeSubnet = (s: TopologySubnet, ox: number, oy: number, tier: 'pub' | 'prv'): [number, number] => {
+    const sid = s.id;
     const lambdas = (lambdaInSubnet.get(sid) || [])
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
-    const residents: ['nat' | 'ec2' | 'lambda', Row][] = [
-      ...(natInSubnet.get(sid) || []).map((x): ['nat', Row] => ['nat', x]),
+    const residents: ['nat' | 'ec2' | 'lambda', TopologyNode][] = [
+      ...(natInSubnet.get(sid) || []).map((x): ['nat', TopologyNode] => ['nat', x]),
       ...(ec2InSubnet.get(sid) || [])
         .slice()
-        .sort((a, b) => a.instance_id.localeCompare(b.instance_id))
-        .map((x): ['ec2', Row] => ['ec2', x]),
-      ...lambdas.slice(0, LAMBDA_CAP).map((x): ['lambda', Row] => ['lambda', x]),
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map((x): ['ec2', TopologyNode] => ['ec2', x]),
+      ...lambdas.slice(0, LAMBDA_CAP).map((x): ['lambda', TopologyNode] => ['lambda', x]),
     ];
     const n = Math.max(1, residents.length);
     const cols = Math.min(n, COLS);
@@ -431,16 +322,16 @@ export function buildFossflowModel(
       const cy = oy + 2 + Math.floor(i / COLS) * SP;
       const lh = i % 2 ? LABEL_HIGH : LABEL_LOW;
       if (kind === 'nat') {
-        const iid = r.nat_gateway_id ? `nat-${r.nat_gateway_id}` : uid('nat');
+        const iid = `nat-${r.id}`;
         addNode(iid, natLabel(r), 'router', cx, cy, '', lh);
         natItemIds.push(iid);
       } else if (kind === 'lambda') {
-        addNode(`lambda-${r.name}`, r.name, 'aws-lambda', cx, cy, r.runtime || '', lh);
+        addNode(`lambda-${r.name}`, r.name, 'aws-lambda', cx, cy, metaStr(r, 'runtime'), lh);
       } else {
-        const iid = r.instance_id;
+        const iid = r.id;
         addNode(iid, ec2Label(r), 'aws-ec2', cx, cy, '', lh);
         nodeByInstance.add(iid);
-        ec2Tiles.set(iid, { x: cx, y: cy, cluster: r.eks_cluster || null });
+        ec2Tiles.set(iid, { x: cx, y: cy, cluster: metaStr(r, 'eksCluster') || null });
       }
     });
     if (lambdas.length > LAMBDA_CAP) {
@@ -482,14 +373,14 @@ export function buildFossflowModel(
   let maxBottom = azTop;
   azs.forEach((az) => {
     const tiers = grid.get(az)!;
-    const subnets: [Row, 'pub' | 'prv'][] = [
-      ...tiers.public.map((s): [Row, 'pub'] => [s, 'pub']),
-      ...tiers.private.map((s): [Row, 'prv'] => [s, 'prv']),
+    const subnets: [TopologySubnet, 'pub' | 'prv'][] = [
+      ...tiers.public.map((s): [TopologySubnet, 'pub'] => [s, 'pub']),
+      ...tiers.private.map((s): [TopologySubnet, 'prv'] => [s, 'prv']),
     ];
     const azBoxes = Array.from(serviceBoxesByAz.get(az)?.entries() || []);
     let colW = 0;
     subnets.forEach(([s]) => {
-      const sid = s.subnet_id;
+      const sid = s.id;
       const n = Math.max(
         1,
         (ec2InSubnet.get(sid)?.length || 0) +
@@ -520,7 +411,7 @@ export function buildFossflowModel(
 
   // ALBs centered at top inside the VPC, grouped in an ingress band
   // ALB는 VPC 상단 중앙에 인그레스 밴드로 그룹핑
-  const albIds: [string, Row][] = [];
+  const albIds: [string, TopologyNode][] = [];
   if (vElb.length) {
     const n = vElb.length;
     const albY = VPC_PAD + 1;
@@ -528,16 +419,16 @@ export function buildFossflowModel(
     addRect(startX - 1, albY - 1, startX + (n - 1) * SP + 1, albY + 1, 'col-alb');
     addText(startX - 1, albY - 2, 'Load Balancer (ingress)', 0.25);
     [...vElb]
-      .sort((a, b) => a.elb_name.localeCompare(b.elb_name))
+      .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((e, i) => {
-        const iid = `elb-${e.elb_name.replace(/[^A-Za-z0-9-]/g, '-')}`;
+        const iid = `elb-${e.name.replace(/[^A-Za-z0-9-]/g, '-')}`;
         addNode(
           iid,
-          e.elb_name,
+          e.name,
           'aws-elastic-load-balancing',
           startX + i * SP,
           albY,
-          e.scheme || '',
+          metaStr(e, 'scheme'),
           i % 2 ? LABEL_HIGH : LABEL_LOW
         );
         albIds.push([iid, e]);
@@ -550,17 +441,17 @@ export function buildFossflowModel(
 
   // IGW on the VPC boundary between Internet and the ALB band, labeled with its Name tag
   // IGW는 VPC 경계(Internet과 ALB 밴드 사이)에 Name 태그로 표기
-  const igwId = vIgw.length ? `igw-node-${vIgw[0].internet_gateway_id}` : null;
+  const igwId = vIgw.length ? `igw-node-${vIgw[0].id}` : null;
   if (igwId) {
-    addNode(igwId, vIgw[0].name || vIgw[0].internet_gateway_id, 'router', Math.floor(vpcW / 2), 0, 'Internet Gateway');
+    addNode(igwId, vIgw[0].name, 'router', Math.floor(vpcW / 2), 0, 'Internet Gateway');
   }
 
   // TGW attachments on the left VPC boundary, labeled with Name tags
   // TGW 어태치먼트는 VPC 좌측 경계에 Name 태그로 표기
   vTgw.forEach((t, i) => {
     addNode(
-      `tgw-node-${t.transit_gateway_attachment_id}`,
-      t.name || t.transit_gateway_id,
+      `tgw-node-${t.id}`,
+      t.name,
       'aws-transit-gateway',
       0,
       Math.floor(vpcH / 2) + i * SP,
@@ -576,10 +467,10 @@ export function buildFossflowModel(
   // 전부 덮어버리므로 인접 노드 그룹별로 분리)
   if (show.eks) {
     const byClusterSubnet = new Map<string, { x: number; y: number }[]>();
-    vEc2.forEach((r) => {
-      const t = ec2Tiles.get(r.instance_id);
+    vEc2.forEach((n) => {
+      const t = ec2Tiles.get(n.id);
       if (!t || !t.cluster) return;
-      const key = `${t.cluster}|${r.subnet_id}`;
+      const key = `${t.cluster}|${n.subnetId}`;
       if (!byClusterSubnet.has(key)) byClusterSubnet.set(key, []);
       byClusterSubnet.get(key)!.push(t);
     });
@@ -601,14 +492,13 @@ export function buildFossflowModel(
   // VPC 엔드포인트는 우측 경계 배치 (상한)
   const EP_CAP = 8;
   vEndpoints.slice(0, EP_CAP).forEach((e, i) => {
-    const svc = (e.service_name || '').replace(/^com\.amazonaws\.[a-z0-9-]+\./, '');
     addNode(
-      `vpce-${e.vpc_endpoint_id}`,
-      svc || e.vpc_endpoint_id,
+      `vpce-${e.id}`,
+      e.name,
       'cube',
       vpcW,
       3 + i * SP,
-      `${e.vpc_endpoint_type || ''} endpoint`,
+      `${metaStr(e, 'endpointType')} endpoint`,
       i % 2 ? LABEL_HIGH : LABEL_LOW
     );
   });
@@ -620,63 +510,41 @@ export function buildFossflowModel(
   // VPC 밖 계정 전역 트레이 (opt-in 레이어, 타입별 상한)
   const TRAY_CAP = 9;
   const trayBoxes: [string, ServiceEntry[], number][] = [];
-  if (show.s3 && (data.s3 || []).length) {
-    const rows = data.s3!;
-    trayBoxes.push([
-      'S3',
-      rows.slice(0, TRAY_CAP).map((r) => ({
-        id: `s3-${r.name}`,
-        name: r.name,
-        icon: 'aws-simple-storage-service',
-        desc: r.region || '',
-      })),
-      rows.length,
-    ]);
-  }
-  if (show.dynamodb && (data.dynamodb || []).length) {
-    const rows = data.dynamodb!;
-    trayBoxes.push([
-      'DynamoDB',
-      rows.slice(0, TRAY_CAP).map((r) => ({
-        id: `ddb-${r.name}`,
-        name: r.name,
-        icon: 'aws-dynamodb',
-        desc: '',
-      })),
-      rows.length,
-    ]);
-  }
-  if (show.cloudfront && (data.cloudfront || []).length) {
-    const rows = data.cloudfront!;
-    trayBoxes.push([
-      'CloudFront',
-      rows.slice(0, TRAY_CAP).map((r) => {
-        const alias = Array.isArray(r.aliases)
-          ? r.aliases[0]
-          : (r.aliases as any)?.Items?.[0];
-        return {
-          id: `cf-${r.id}`,
-          name: alias || r.domain_name || r.id,
-          icon: 'aws-cloudfront',
-          desc: r.id || '',
-        };
-      }),
-      rows.length,
-    ]);
-  }
-  if (show.route53 && (data.route53 || []).length) {
-    const rows = data.route53!;
-    trayBoxes.push([
-      'Route 53',
-      rows.slice(0, TRAY_CAP).map((r) => ({
-        id: `r53-${r.name}`,
-        name: (r.name || '').replace(/\.$/, ''),
-        icon: 'aws-route-53',
-        desc: r.private_zone ? 'private zone' : 'public zone',
-      })),
-      rows.length,
-    ]);
-  }
+  const addTray = (
+    label: string,
+    list: TopologyNode[],
+    toEntry: (n: TopologyNode) => ServiceEntry
+  ) => {
+    if (list.length) trayBoxes.push([label, list.slice(0, TRAY_CAP).map(toEntry), list.length]);
+  };
+  if (show.s3)
+    addTray('S3', globalOfKind('s3'), (n) => ({
+      id: `s3-${n.name}`,
+      name: n.name,
+      icon: 'aws-simple-storage-service',
+      desc: metaStr(n, 'region'),
+    }));
+  if (show.dynamodb)
+    addTray('DynamoDB', globalOfKind('dynamodb'), (n) => ({
+      id: `ddb-${n.name}`,
+      name: n.name,
+      icon: 'aws-dynamodb',
+      desc: '',
+    }));
+  if (show.cloudfront)
+    addTray('CloudFront', globalOfKind('cloudfront'), (n) => ({
+      id: `cf-${metaStr(n, 'distributionId')}`,
+      name: n.name,
+      icon: 'aws-cloudfront',
+      desc: metaStr(n, 'distributionId'),
+    }));
+  if (show.route53)
+    addTray('Route 53', globalOfKind('route53'), (n) => ({
+      id: `r53-${n.id.slice('route53:'.length)}`,
+      name: n.name,
+      icon: 'aws-route-53',
+      desc: n.meta.privateZone ? 'private zone' : 'public zone',
+    }));
   if (trayBoxes.length) {
     const trayX = vpcW + 4;
     addText(trayX, 0, 'Account-global (external)', 0.3);
@@ -709,9 +577,9 @@ export function buildFossflowModel(
   const ingressHub = igwId || 'internet';
   if (igwId) connOnce('internet', igwId, 'col-edge', 'SOLID', 'HTTPS');
   albIds.forEach(([iid, e]) => {
-    if (e.scheme === 'internet-facing')
+    if (metaStr(e, 'scheme') === 'internet-facing')
       connOnce(ingressHub, iid, 'col-edge', 'SOLID', igwId ? undefined : 'HTTPS');
-    resolveTargets(e.arn).forEach((inst) => {
+    resolveTargets(e.id).forEach((inst) => {
       if (nodeByInstance.has(inst)) connOnce(iid, inst, 'col-edge');
     });
   });

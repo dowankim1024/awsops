@@ -47,7 +47,8 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - `src/lib/queries/*.ts` — SQL 쿼리 파일 (`relationships.ts`가 토폴로지 원천)
 - `src/lib/app-config.ts` — `data/config.json` 로더. `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — ALB 헤더/쿠키 없으면 `anonymous`
-- `src/lib/fossflow/generator.ts` — 기존 Topology View(FossFLOW) 모델 생성기
+- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, Live 어댑터, vitest (ADR-010)
+- `src/lib/fossflow/generator.ts` — 기존 Topology View(FossFLOW) 모델 생성기. `TopologyGraph`를 입력으로 받음
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI 종합 진단 (Bedrock 직접 호출, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — 대시보드 쿼리 프리워밍 (4분 주기)
 - `src/app/api/steampipe/route.ts` — 쿼리 실행 + 계정 관리 (관리자 게이팅)
@@ -81,7 +82,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 ## 작업 규칙
 - 브랜치 `feature/topology-3d`. Phase별 커밋. upstream PR 없음
 - 새 페이지: `information_schema` 확인 → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → 빌드 → `src/app/CLAUDE.md` 갱신
-- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 009, 다음 010)
+- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 011, 다음 012)
 - 훅: `.claude/hooks/secret-scan.sh`(Write/Edit 전), `pre-commit.sh`(Bash 전), `check-doc-sync.sh`(Write/Edit 후)
 
 ---
@@ -135,7 +136,8 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - `src/lib/queries/*.ts` — SQL query files (`relationships.ts` feeds the topology)
 - `src/lib/app-config.ts` — `data/config.json` loader: `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — falls back to `anonymous` without ALB header/cookie
-- `src/lib/fossflow/generator.ts` — existing Topology View (FossFLOW) model generator
+- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, live adapter, vitest (ADR-010)
+- `src/lib/fossflow/generator.ts` — existing Topology View (FossFLOW) model generator, now fed a `TopologyGraph`
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI diagnosis (direct Bedrock, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — dashboard query pre-warming (4 min)
 - `src/app/api/steampipe/route.ts` — query execution + account management (admin gating)
@@ -152,5 +154,5 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 ## Working Rules
 - Branch `feature/topology-3d`, one commit per Phase, no upstream PR
 - New page: check `information_schema` → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → build → update `src/app/CLAUDE.md`
-- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 009, next 010)
+- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 011, next 012)
 - Hooks: `.claude/hooks/secret-scan.sh` (pre Write/Edit), `pre-commit.sh` (pre Bash), `check-doc-sync.sh` (post Write/Edit)

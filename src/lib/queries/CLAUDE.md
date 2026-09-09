@@ -26,7 +26,7 @@ Steampipe용 SQL 쿼리 정의. 각 파일은 특정 AWS/K8s 서비스에 대한
 - `cost.ts` — Cost Explorer 비용/사용량
 - `security.ts` — 보안 점검 (Public S3, Open SG, Unencrypted EBS, CVE)
 - `metrics.ts` — CloudWatch 메트릭 데이터 (모니터링 페이지)
-- `relationships.ts` — 리소스 관계 (토폴로지 그래프)
+- `relationships.ts` — 리소스 관계 (토폴로지 그래프). 행은 `src/lib/topology/adapters/live.ts`가 소비하므로 컬럼 변경 시 함께 수정
 - `container-cost.ts` — ECS 컨테이너 비용 (Task 메타데이터, 서비스 요약)
 - `eks-container-cost.ts` — EKS 컨테이너 비용 (Pod 리소스 요청, 노드 용량)
 
@@ -67,7 +67,7 @@ SQL query definitions for Steampipe. Each file exports queries for a specific AW
 - `cost.ts` — Cost Explorer cost/usage
 - `security.ts` — Security checks (Public S3, Open SGs, Unencrypted EBS, CVE)
 - `metrics.ts` — CloudWatch metric data (monitoring page)
-- `relationships.ts` — Resource relationships (topology graph)
+- `relationships.ts` — Resource relationships (topology graph). Rows are consumed by `src/lib/topology/adapters/live.ts`; change both together
 - `container-cost.ts` — ECS container cost (task metadata, service summary)
 - `eks-container-cost.ts` — EKS container cost (pod resource requests, node capacity)
 

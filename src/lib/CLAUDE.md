@@ -19,6 +19,8 @@
 - `report-generator.ts` / `report-prompts.ts` — 진단 데이터 수집 오케스트레이터 / 15섹션 진단 프롬프트 정의
 - `datasource-client.ts` / `datasource-registry.ts` / `datasource-prompts.ts` — 외부 데이터소스 HTTP 클라이언트(7종, SSRF 방지) / 타입 레지스트리 / AI 쿼리 생성 프롬프트
 - `sns-notification.ts` — SNS 이메일 알림 (토픽 생성, 구독 동기화, 진단 완료 발행)
+- `topology/` — 3D/FossFLOW 공용 `TopologyGraph` 계약, `applyFilter`, `validateGraph`, `adapters/live.ts` (ADR-010, vitest)
+- `fossflow/` — 기존 Topology View 모델 생성기. `TopologyGraph`를 입력으로 받음
 - `collectors/` — auto-collect 에이전트 (db-optimize, eks-optimize, idle-scan, incident, msk-optimize, trace-analyze — 공통 `Collector` 인터페이스)
 - `queries/*.ts` — 25개 SQL 쿼리 파일 (ebs, msk, opensearch, container-cost, eks-container-cost, bedrock 포함)
 
@@ -54,6 +56,8 @@ Core libraries: Steampipe database connection, SQL query definitions, inventory,
 - `report-generator.ts` / `report-prompts.ts` — Diagnosis data collection orchestrator / 15-section diagnosis prompt definitions
 - `datasource-client.ts` / `datasource-registry.ts` / `datasource-prompts.ts` — External datasource HTTP clients (7 platforms, SSRF-protected) / type registry / AI query generation prompts
 - `sns-notification.ts` — SNS email notifications (topic creation, subscription sync, diagnosis completion publish)
+- `topology/` — `TopologyGraph` contract shared by 3D and FossFLOW views, `applyFilter`, `validateGraph`, `adapters/live.ts` (ADR-010, vitest)
+- `fossflow/` — existing Topology View model generator, now fed a `TopologyGraph`
 - `collectors/` — Auto-collect agents (db-optimize, eks-optimize, idle-scan, incident, msk-optimize, trace-analyze — shared `Collector` interface)
 - `queries/*.ts` — 25 SQL query files (incl. ebs, msk, opensearch, container-cost, eks-container-cost, bedrock)
 

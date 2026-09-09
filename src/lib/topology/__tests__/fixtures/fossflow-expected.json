@@ -1,0 +1,3264 @@
+[
+  {
+    "label": "prod default",
+    "model": {
+      "title": "AWSops - prod-vpc",
+      "description": "Auto-generated from Steampipe data (vpc-0aaa1111, 10.0.0.0/16)",
+      "colors": [
+        {
+          "id": "col-vpc",
+          "value": "#ede9fe"
+        },
+        {
+          "id": "col-pub",
+          "value": "#dcedc8"
+        },
+        {
+          "id": "col-prv",
+          "value": "#d0e7f5"
+        },
+        {
+          "id": "col-alb",
+          "value": "#e2d9f3"
+        },
+        {
+          "id": "col-eks",
+          "value": "#fcd9a8"
+        },
+        {
+          "id": "col-ext",
+          "value": "#e7e7ee"
+        },
+        {
+          "id": "col-edge",
+          "value": "#2563eb"
+        },
+        {
+          "id": "col-egress",
+          "value": "#9ca3af"
+        }
+      ],
+      "items": [
+        {
+          "id": "nat-nat-0a0a0a0a",
+          "name": "NAT GW (2a)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0bast0000000003",
+          "name": "i-0bast0",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0web00000000001",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0api00000000006",
+          "name": "api",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000004",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000005",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "lambda-fn-01",
+          "name": "fn-01",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-02",
+          "name": "fn-02",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-03",
+          "name": "fn-03",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-04",
+          "name": "fn-04",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-05",
+          "name": "fn-05",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-06",
+          "name": "fn-06",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "rds-prod-db",
+          "name": "prod-db",
+          "icon": "aws-rds",
+          "description": "postgres"
+        },
+        {
+          "id": "msk-prod-kafka-ap-northeast-2a",
+          "name": "prod-kafka",
+          "icon": "aws-managed-streaming-for-apache-kafka",
+          "description": "ACTIVE"
+        },
+        {
+          "id": "nat-nat-0c0c0c0c",
+          "name": "NAT GW (2c)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0web00000000002",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0app00000000007",
+          "name": "app",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000009",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "lambda-fn-report",
+          "name": "fn-report",
+          "icon": "aws-lambda",
+          "description": "python3.12"
+        },
+        {
+          "id": "cache-prod-redis",
+          "name": "prod-redis",
+          "icon": "aws-elasticache",
+          "description": "redis"
+        },
+        {
+          "id": "msk-prod-kafka-ap-northeast-2c",
+          "name": "prod-kafka",
+          "icon": "aws-managed-streaming-for-apache-kafka",
+          "description": "ACTIVE"
+        },
+        {
+          "id": "os-prod-search-ap-northeast-2c",
+          "name": "prod-search",
+          "icon": "aws-opensearch-service",
+          "description": "OpenSearch_2.11"
+        },
+        {
+          "id": "elb-prod-alb",
+          "name": "prod-alb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internet-facing"
+        },
+        {
+          "id": "elb-prod-nlb",
+          "name": "prod-nlb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internal"
+        },
+        {
+          "id": "internet",
+          "name": "Internet",
+          "icon": "cloud"
+        },
+        {
+          "id": "igw-node-igw-0aaa1111",
+          "name": "prod-igw",
+          "icon": "router",
+          "description": "Internet Gateway"
+        },
+        {
+          "id": "tgw-node-tgw-attach-0x0x0x0x",
+          "name": "tgw-0x0x0x0x",
+          "icon": "aws-transit-gateway",
+          "description": "Transit Gateway attachment"
+        },
+        {
+          "id": "vpce-vpce-0001",
+          "name": "s3",
+          "icon": "cube",
+          "description": "Gateway endpoint"
+        },
+        {
+          "id": "vpce-vpce-0002",
+          "name": "dynamodb",
+          "icon": "cube",
+          "description": "Gateway endpoint"
+        },
+        {
+          "id": "vpce-vpce-0003",
+          "name": "ecr.api",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0004",
+          "name": "ecr.dkr",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0005",
+          "name": "logs",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0006",
+          "name": "sts",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0007",
+          "name": "ssm",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0008",
+          "name": "ec2",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        }
+      ],
+      "views": [
+        {
+          "id": "view-main",
+          "name": "prod-vpc topology",
+          "items": [
+            {
+              "id": "nat-nat-0a0a0a0a",
+              "tile": {
+                "x": -11,
+                "y": -7
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0bast0000000003",
+              "tile": {
+                "x": -7,
+                "y": -7
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0web00000000001",
+              "tile": {
+                "x": -3,
+                "y": -7
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0api00000000006",
+              "tile": {
+                "x": -11,
+                "y": -1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000004",
+              "tile": {
+                "x": -7,
+                "y": -1
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0eks00000000005",
+              "tile": {
+                "x": -3,
+                "y": -1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-01",
+              "tile": {
+                "x": -11,
+                "y": 3
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-02",
+              "tile": {
+                "x": -7,
+                "y": 3
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-03",
+              "tile": {
+                "x": -3,
+                "y": 3
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-04",
+              "tile": {
+                "x": -11,
+                "y": 7
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-05",
+              "tile": {
+                "x": -7,
+                "y": 7
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-06",
+              "tile": {
+                "x": -3,
+                "y": 7
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "rds-prod-db",
+              "tile": {
+                "x": -11,
+                "y": 13
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "msk-prod-kafka-ap-northeast-2a",
+              "tile": {
+                "x": -11,
+                "y": 19
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "nat-nat-0c0c0c0c",
+              "tile": {
+                "x": 4,
+                "y": -7
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0web00000000002",
+              "tile": {
+                "x": 8,
+                "y": -7
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0app00000000007",
+              "tile": {
+                "x": 4,
+                "y": -1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000009",
+              "tile": {
+                "x": 8,
+                "y": -1
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-report",
+              "tile": {
+                "x": 12,
+                "y": -1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "cache-prod-redis",
+              "tile": {
+                "x": 4,
+                "y": 5
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "msk-prod-kafka-ap-northeast-2c",
+              "tile": {
+                "x": 4,
+                "y": 11
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "os-prod-search-ap-northeast-2c",
+              "tile": {
+                "x": 4,
+                "y": 17
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "elb-prod-alb",
+              "tile": {
+                "x": -2,
+                "y": -16
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "elb-prod-nlb",
+              "tile": {
+                "x": 2,
+                "y": -16
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "internet",
+              "tile": {
+                "x": 0,
+                "y": -22
+              }
+            },
+            {
+              "id": "igw-node-igw-0aaa1111",
+              "tile": {
+                "x": 0,
+                "y": -19
+              }
+            },
+            {
+              "id": "tgw-node-tgw-attach-0x0x0x0x",
+              "tile": {
+                "x": -16,
+                "y": 1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0001",
+              "tile": {
+                "x": 16,
+                "y": -16
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0002",
+              "tile": {
+                "x": 16,
+                "y": -12
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0003",
+              "tile": {
+                "x": 16,
+                "y": -8
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0004",
+              "tile": {
+                "x": 16,
+                "y": -4
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0005",
+              "tile": {
+                "x": 16,
+                "y": 0
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0006",
+              "tile": {
+                "x": 16,
+                "y": 4
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0007",
+              "tile": {
+                "x": 16,
+                "y": 8
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0008",
+              "tile": {
+                "x": 16,
+                "y": 12
+              },
+              "labelHeight": 140
+            }
+          ],
+          "rectangles": [
+            {
+              "id": "rect-28",
+              "color": "col-eks",
+              "from": {
+                "x": 7,
+                "y": -2
+              },
+              "to": {
+                "x": 9,
+                "y": 0
+              }
+            },
+            {
+              "id": "rect-26",
+              "color": "col-eks",
+              "from": {
+                "x": -8,
+                "y": -2
+              },
+              "to": {
+                "x": -2,
+                "y": 0
+              }
+            },
+            {
+              "id": "rect-2",
+              "color": "col-pub",
+              "from": {
+                "x": -13,
+                "y": -9
+              },
+              "to": {
+                "x": -1,
+                "y": -5
+              }
+            },
+            {
+              "id": "rect-4",
+              "color": "col-prv",
+              "from": {
+                "x": -13,
+                "y": -3
+              },
+              "to": {
+                "x": -1,
+                "y": 9
+              }
+            },
+            {
+              "id": "rect-7",
+              "color": "col-prv",
+              "from": {
+                "x": -13,
+                "y": 11
+              },
+              "to": {
+                "x": -9,
+                "y": 15
+              }
+            },
+            {
+              "id": "rect-9",
+              "color": "col-prv",
+              "from": {
+                "x": -13,
+                "y": 17
+              },
+              "to": {
+                "x": -9,
+                "y": 21
+              }
+            },
+            {
+              "id": "rect-12",
+              "color": "col-pub",
+              "from": {
+                "x": 2,
+                "y": -9
+              },
+              "to": {
+                "x": 10,
+                "y": -5
+              }
+            },
+            {
+              "id": "rect-14",
+              "color": "col-prv",
+              "from": {
+                "x": 2,
+                "y": -3
+              },
+              "to": {
+                "x": 14,
+                "y": 1
+              }
+            },
+            {
+              "id": "rect-16",
+              "color": "col-prv",
+              "from": {
+                "x": 2,
+                "y": 3
+              },
+              "to": {
+                "x": 6,
+                "y": 7
+              }
+            },
+            {
+              "id": "rect-18",
+              "color": "col-prv",
+              "from": {
+                "x": 2,
+                "y": 9
+              },
+              "to": {
+                "x": 6,
+                "y": 13
+              }
+            },
+            {
+              "id": "rect-20",
+              "color": "col-prv",
+              "from": {
+                "x": 2,
+                "y": 15
+              },
+              "to": {
+                "x": 6,
+                "y": 19
+              }
+            },
+            {
+              "id": "rect-22",
+              "color": "col-alb",
+              "from": {
+                "x": -3,
+                "y": -17
+              },
+              "to": {
+                "x": 3,
+                "y": -15
+              }
+            },
+            {
+              "id": "rect-24",
+              "color": "col-vpc",
+              "from": {
+                "x": -16,
+                "y": -19
+              },
+              "to": {
+                "x": 16,
+                "y": 22
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "conn-31",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "description": "HTTPS",
+              "anchors": [
+                {
+                  "id": "anc-32",
+                  "ref": {
+                    "item": "internet"
+                  }
+                },
+                {
+                  "id": "anc-33",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-34",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-35",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                },
+                {
+                  "id": "anc-36",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-37",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-38",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-39",
+                  "ref": {
+                    "item": "i-0eks00000000004"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-40",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-41",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-42",
+                  "ref": {
+                    "item": "i-0eks00000000005"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-43",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-44",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-45",
+                  "ref": {
+                    "item": "i-0eks00000000009"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-46",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-47",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-48",
+                  "ref": {
+                    "item": "i-0web00000000001"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-49",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-50",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-51",
+                  "ref": {
+                    "item": "i-0web00000000002"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-52",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-53",
+                  "ref": {
+                    "item": "elb-prod-nlb"
+                  }
+                },
+                {
+                  "id": "anc-54",
+                  "ref": {
+                    "item": "i-0api00000000006"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-55",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-56",
+                  "ref": {
+                    "item": "i-0bast0000000003"
+                  }
+                },
+                {
+                  "id": "anc-57",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-58",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-59",
+                  "ref": {
+                    "item": "i-0web00000000001"
+                  }
+                },
+                {
+                  "id": "anc-60",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-61",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-62",
+                  "ref": {
+                    "item": "i-0api00000000006"
+                  }
+                },
+                {
+                  "id": "anc-63",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-64",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-65",
+                  "ref": {
+                    "item": "i-0eks00000000004"
+                  }
+                },
+                {
+                  "id": "anc-66",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-67",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-68",
+                  "ref": {
+                    "item": "i-0eks00000000005"
+                  }
+                },
+                {
+                  "id": "anc-69",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-70",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-71",
+                  "ref": {
+                    "item": "i-0web00000000002"
+                  }
+                },
+                {
+                  "id": "anc-72",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-73",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-74",
+                  "ref": {
+                    "item": "i-0app00000000007"
+                  }
+                },
+                {
+                  "id": "anc-75",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-76",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-77",
+                  "ref": {
+                    "item": "i-0eks00000000009"
+                  }
+                },
+                {
+                  "id": "anc-78",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-79",
+              "color": "col-egress",
+              "style": "DASHED",
+              "width": 6,
+              "anchors": [
+                {
+                  "id": "anc-80",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                },
+                {
+                  "id": "anc-81",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                }
+              ]
+            }
+          ],
+          "textBoxes": [
+            {
+              "id": "txt-1",
+              "tile": {
+                "x": -13,
+                "y": -11
+              },
+              "content": "AZ ap-northeast-2a",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-3",
+              "tile": {
+                "x": -13,
+                "y": -10
+              },
+              "content": "prod-public-a (10.0.0.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-5",
+              "tile": {
+                "x": -13,
+                "y": -4
+              },
+              "content": "private-a (10.0.10.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-6",
+              "tile": {
+                "x": -13,
+                "y": 10
+              },
+              "content": "+2 more Lambda",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-8",
+              "tile": {
+                "x": -13,
+                "y": 10
+              },
+              "content": "RDS",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-10",
+              "tile": {
+                "x": -13,
+                "y": 16
+              },
+              "content": "MSK",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-11",
+              "tile": {
+                "x": 2,
+                "y": -11
+              },
+              "content": "AZ ap-northeast-2c",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-13",
+              "tile": {
+                "x": 2,
+                "y": -10
+              },
+              "content": "prod-public-c (10.0.1.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-15",
+              "tile": {
+                "x": 2,
+                "y": -4
+              },
+              "content": "prod-private-c (10.0.11.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-17",
+              "tile": {
+                "x": 2,
+                "y": 2
+              },
+              "content": "ElastiCache",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-19",
+              "tile": {
+                "x": 2,
+                "y": 8
+              },
+              "content": "MSK",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-21",
+              "tile": {
+                "x": 2,
+                "y": 14
+              },
+              "content": "OpenSearch",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-23",
+              "tile": {
+                "x": -3,
+                "y": -18
+              },
+              "content": "Load Balancer (ingress)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-25",
+              "tile": {
+                "x": -16,
+                "y": -20
+              },
+              "content": "prod-vpc (10.0.0.0/16)",
+              "fontSize": 0.35
+            },
+            {
+              "id": "txt-27",
+              "tile": {
+                "x": -8,
+                "y": 1
+              },
+              "content": "EKS prod-eks",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-29",
+              "tile": {
+                "x": 7,
+                "y": 1
+              },
+              "content": "EKS prod-eks",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-30",
+              "tile": {
+                "x": 16,
+                "y": 16
+              },
+              "content": "+2 more endpoints",
+              "fontSize": 0.22
+            }
+          ]
+        }
+      ],
+      "fitToScreen": true
+    }
+  },
+  {
+    "label": "prod by name, empty subnets, tray layers",
+    "model": {
+      "title": "AWSops - prod-vpc",
+      "description": "Auto-generated from Steampipe data (vpc-0aaa1111, 10.0.0.0/16)",
+      "colors": [
+        {
+          "id": "col-vpc",
+          "value": "#ede9fe"
+        },
+        {
+          "id": "col-pub",
+          "value": "#dcedc8"
+        },
+        {
+          "id": "col-prv",
+          "value": "#d0e7f5"
+        },
+        {
+          "id": "col-alb",
+          "value": "#e2d9f3"
+        },
+        {
+          "id": "col-eks",
+          "value": "#fcd9a8"
+        },
+        {
+          "id": "col-ext",
+          "value": "#e7e7ee"
+        },
+        {
+          "id": "col-edge",
+          "value": "#2563eb"
+        },
+        {
+          "id": "col-egress",
+          "value": "#9ca3af"
+        }
+      ],
+      "items": [
+        {
+          "id": "nat-nat-0a0a0a0a",
+          "name": "NAT GW (2a)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0bast0000000003",
+          "name": "i-0bast0",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0web00000000001",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0api00000000006",
+          "name": "api",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000004",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000005",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "lambda-fn-01",
+          "name": "fn-01",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-02",
+          "name": "fn-02",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-03",
+          "name": "fn-03",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-04",
+          "name": "fn-04",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-05",
+          "name": "fn-05",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "lambda-fn-06",
+          "name": "fn-06",
+          "icon": "aws-lambda",
+          "description": "nodejs20.x"
+        },
+        {
+          "id": "rds-prod-db",
+          "name": "prod-db",
+          "icon": "aws-rds",
+          "description": "postgres"
+        },
+        {
+          "id": "msk-prod-kafka-ap-northeast-2a",
+          "name": "prod-kafka",
+          "icon": "aws-managed-streaming-for-apache-kafka",
+          "description": "ACTIVE"
+        },
+        {
+          "id": "nat-nat-0c0c0c0c",
+          "name": "NAT GW (2c)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0web00000000002",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0app00000000007",
+          "name": "app",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000009",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "lambda-fn-report",
+          "name": "fn-report",
+          "icon": "aws-lambda",
+          "description": "python3.12"
+        },
+        {
+          "id": "cache-prod-redis",
+          "name": "prod-redis",
+          "icon": "aws-elasticache",
+          "description": "redis"
+        },
+        {
+          "id": "msk-prod-kafka-ap-northeast-2c",
+          "name": "prod-kafka",
+          "icon": "aws-managed-streaming-for-apache-kafka",
+          "description": "ACTIVE"
+        },
+        {
+          "id": "os-prod-search-ap-northeast-2c",
+          "name": "prod-search",
+          "icon": "aws-opensearch-service",
+          "description": "OpenSearch_2.11"
+        },
+        {
+          "id": "elb-prod-alb",
+          "name": "prod-alb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internet-facing"
+        },
+        {
+          "id": "elb-prod-nlb",
+          "name": "prod-nlb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internal"
+        },
+        {
+          "id": "internet",
+          "name": "Internet",
+          "icon": "cloud"
+        },
+        {
+          "id": "igw-node-igw-0aaa1111",
+          "name": "prod-igw",
+          "icon": "router",
+          "description": "Internet Gateway"
+        },
+        {
+          "id": "tgw-node-tgw-attach-0x0x0x0x",
+          "name": "tgw-0x0x0x0x",
+          "icon": "aws-transit-gateway",
+          "description": "Transit Gateway attachment"
+        },
+        {
+          "id": "vpce-vpce-0001",
+          "name": "s3",
+          "icon": "cube",
+          "description": "Gateway endpoint"
+        },
+        {
+          "id": "vpce-vpce-0002",
+          "name": "dynamodb",
+          "icon": "cube",
+          "description": "Gateway endpoint"
+        },
+        {
+          "id": "vpce-vpce-0003",
+          "name": "ecr.api",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0004",
+          "name": "ecr.dkr",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0005",
+          "name": "logs",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0006",
+          "name": "sts",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0007",
+          "name": "ssm",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "vpce-vpce-0008",
+          "name": "ec2",
+          "icon": "cube",
+          "description": "Interface endpoint"
+        },
+        {
+          "id": "s3-prod-assets",
+          "name": "prod-assets",
+          "icon": "aws-simple-storage-service",
+          "description": "ap-northeast-2"
+        },
+        {
+          "id": "s3-prod-backup",
+          "name": "prod-backup",
+          "icon": "aws-simple-storage-service",
+          "description": "us-east-1"
+        },
+        {
+          "id": "s3-prod-logs",
+          "name": "prod-logs",
+          "icon": "aws-simple-storage-service",
+          "description": "ap-northeast-2"
+        },
+        {
+          "id": "ddb-prod-sessions",
+          "name": "prod-sessions",
+          "icon": "aws-dynamodb"
+        },
+        {
+          "id": "cf-E1AAAAAAAAAAAA",
+          "name": "cdn.example.com",
+          "icon": "aws-cloudfront",
+          "description": "E1AAAAAAAAAAAA"
+        },
+        {
+          "id": "cf-E2BBBBBBBBBBBB",
+          "name": "d222.cloudfront.net",
+          "icon": "aws-cloudfront",
+          "description": "E2BBBBBBBBBBBB"
+        },
+        {
+          "id": "r53-example.com.",
+          "name": "example.com",
+          "icon": "aws-route-53",
+          "description": "public zone"
+        },
+        {
+          "id": "r53-internal.",
+          "name": "internal",
+          "icon": "aws-route-53",
+          "description": "private zone"
+        }
+      ],
+      "views": [
+        {
+          "id": "view-main",
+          "name": "prod-vpc topology",
+          "items": [
+            {
+              "id": "nat-nat-0a0a0a0a",
+              "tile": {
+                "x": -19,
+                "y": -10
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0bast0000000003",
+              "tile": {
+                "x": -15,
+                "y": -10
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0web00000000001",
+              "tile": {
+                "x": -11,
+                "y": -10
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0api00000000006",
+              "tile": {
+                "x": -19,
+                "y": 2
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000004",
+              "tile": {
+                "x": -15,
+                "y": 2
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0eks00000000005",
+              "tile": {
+                "x": -11,
+                "y": 2
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-01",
+              "tile": {
+                "x": -19,
+                "y": 6
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-02",
+              "tile": {
+                "x": -15,
+                "y": 6
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-03",
+              "tile": {
+                "x": -11,
+                "y": 6
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-04",
+              "tile": {
+                "x": -19,
+                "y": 10
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "lambda-fn-05",
+              "tile": {
+                "x": -15,
+                "y": 10
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-06",
+              "tile": {
+                "x": -11,
+                "y": 10
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "rds-prod-db",
+              "tile": {
+                "x": -19,
+                "y": 16
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "msk-prod-kafka-ap-northeast-2a",
+              "tile": {
+                "x": -19,
+                "y": 22
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "nat-nat-0c0c0c0c",
+              "tile": {
+                "x": -4,
+                "y": -10
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0web00000000002",
+              "tile": {
+                "x": 0,
+                "y": -10
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0app00000000007",
+              "tile": {
+                "x": -4,
+                "y": 2
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000009",
+              "tile": {
+                "x": 0,
+                "y": 2
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "lambda-fn-report",
+              "tile": {
+                "x": 4,
+                "y": 2
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "cache-prod-redis",
+              "tile": {
+                "x": -4,
+                "y": 8
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "msk-prod-kafka-ap-northeast-2c",
+              "tile": {
+                "x": -4,
+                "y": 14
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "os-prod-search-ap-northeast-2c",
+              "tile": {
+                "x": -4,
+                "y": 20
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "elb-prod-alb",
+              "tile": {
+                "x": -10,
+                "y": -19
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "elb-prod-nlb",
+              "tile": {
+                "x": -6,
+                "y": -19
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "internet",
+              "tile": {
+                "x": -8,
+                "y": -25
+              }
+            },
+            {
+              "id": "igw-node-igw-0aaa1111",
+              "tile": {
+                "x": -8,
+                "y": -22
+              }
+            },
+            {
+              "id": "tgw-node-tgw-attach-0x0x0x0x",
+              "tile": {
+                "x": -24,
+                "y": 1
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0001",
+              "tile": {
+                "x": 8,
+                "y": -19
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0002",
+              "tile": {
+                "x": 8,
+                "y": -15
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0003",
+              "tile": {
+                "x": 8,
+                "y": -11
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0004",
+              "tile": {
+                "x": 8,
+                "y": -7
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0005",
+              "tile": {
+                "x": 8,
+                "y": -3
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0006",
+              "tile": {
+                "x": 8,
+                "y": 1
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "vpce-vpce-0007",
+              "tile": {
+                "x": 8,
+                "y": 5
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "vpce-vpce-0008",
+              "tile": {
+                "x": 8,
+                "y": 9
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "s3-prod-assets",
+              "tile": {
+                "x": 14,
+                "y": -18
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "s3-prod-backup",
+              "tile": {
+                "x": 18,
+                "y": -18
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "s3-prod-logs",
+              "tile": {
+                "x": 22,
+                "y": -18
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "ddb-prod-sessions",
+              "tile": {
+                "x": 14,
+                "y": -12
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "cf-E1AAAAAAAAAAAA",
+              "tile": {
+                "x": 14,
+                "y": -6
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "cf-E2BBBBBBBBBBBB",
+              "tile": {
+                "x": 18,
+                "y": -6
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "r53-example.com.",
+              "tile": {
+                "x": 14,
+                "y": 0
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "r53-internal.",
+              "tile": {
+                "x": 18,
+                "y": 0
+              },
+              "labelHeight": 140
+            }
+          ],
+          "rectangles": [
+            {
+              "id": "rect-32",
+              "color": "col-eks",
+              "from": {
+                "x": -1,
+                "y": 1
+              },
+              "to": {
+                "x": 1,
+                "y": 3
+              }
+            },
+            {
+              "id": "rect-30",
+              "color": "col-eks",
+              "from": {
+                "x": -16,
+                "y": 1
+              },
+              "to": {
+                "x": -10,
+                "y": 3
+              }
+            },
+            {
+              "id": "rect-2",
+              "color": "col-pub",
+              "from": {
+                "x": -21,
+                "y": -12
+              },
+              "to": {
+                "x": -9,
+                "y": -8
+              }
+            },
+            {
+              "id": "rect-4",
+              "color": "col-prv",
+              "from": {
+                "x": -21,
+                "y": -6
+              },
+              "to": {
+                "x": -17,
+                "y": -2
+              }
+            },
+            {
+              "id": "rect-6",
+              "color": "col-prv",
+              "from": {
+                "x": -21,
+                "y": 0
+              },
+              "to": {
+                "x": -9,
+                "y": 12
+              }
+            },
+            {
+              "id": "rect-9",
+              "color": "col-prv",
+              "from": {
+                "x": -21,
+                "y": 14
+              },
+              "to": {
+                "x": -17,
+                "y": 18
+              }
+            },
+            {
+              "id": "rect-11",
+              "color": "col-prv",
+              "from": {
+                "x": -21,
+                "y": 20
+              },
+              "to": {
+                "x": -17,
+                "y": 24
+              }
+            },
+            {
+              "id": "rect-14",
+              "color": "col-pub",
+              "from": {
+                "x": -6,
+                "y": -12
+              },
+              "to": {
+                "x": 2,
+                "y": -8
+              }
+            },
+            {
+              "id": "rect-16",
+              "color": "col-prv",
+              "from": {
+                "x": -6,
+                "y": -6
+              },
+              "to": {
+                "x": -2,
+                "y": -2
+              }
+            },
+            {
+              "id": "rect-18",
+              "color": "col-prv",
+              "from": {
+                "x": -6,
+                "y": 0
+              },
+              "to": {
+                "x": 6,
+                "y": 4
+              }
+            },
+            {
+              "id": "rect-20",
+              "color": "col-prv",
+              "from": {
+                "x": -6,
+                "y": 6
+              },
+              "to": {
+                "x": -2,
+                "y": 10
+              }
+            },
+            {
+              "id": "rect-22",
+              "color": "col-prv",
+              "from": {
+                "x": -6,
+                "y": 12
+              },
+              "to": {
+                "x": -2,
+                "y": 16
+              }
+            },
+            {
+              "id": "rect-24",
+              "color": "col-prv",
+              "from": {
+                "x": -6,
+                "y": 18
+              },
+              "to": {
+                "x": -2,
+                "y": 22
+              }
+            },
+            {
+              "id": "rect-26",
+              "color": "col-alb",
+              "from": {
+                "x": -11,
+                "y": -20
+              },
+              "to": {
+                "x": -5,
+                "y": -18
+              }
+            },
+            {
+              "id": "rect-28",
+              "color": "col-vpc",
+              "from": {
+                "x": -24,
+                "y": -22
+              },
+              "to": {
+                "x": 8,
+                "y": 25
+              }
+            },
+            {
+              "id": "rect-36",
+              "color": "col-ext",
+              "from": {
+                "x": 12,
+                "y": -20
+              },
+              "to": {
+                "x": 24,
+                "y": -16
+              }
+            },
+            {
+              "id": "rect-38",
+              "color": "col-ext",
+              "from": {
+                "x": 12,
+                "y": -14
+              },
+              "to": {
+                "x": 16,
+                "y": -10
+              }
+            },
+            {
+              "id": "rect-40",
+              "color": "col-ext",
+              "from": {
+                "x": 12,
+                "y": -8
+              },
+              "to": {
+                "x": 20,
+                "y": -4
+              }
+            },
+            {
+              "id": "rect-42",
+              "color": "col-ext",
+              "from": {
+                "x": 12,
+                "y": -2
+              },
+              "to": {
+                "x": 20,
+                "y": 2
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "conn-44",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "description": "HTTPS",
+              "anchors": [
+                {
+                  "id": "anc-45",
+                  "ref": {
+                    "item": "internet"
+                  }
+                },
+                {
+                  "id": "anc-46",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-47",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-48",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                },
+                {
+                  "id": "anc-49",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-50",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-51",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-52",
+                  "ref": {
+                    "item": "i-0eks00000000004"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-53",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-54",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-55",
+                  "ref": {
+                    "item": "i-0eks00000000005"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-56",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-57",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-58",
+                  "ref": {
+                    "item": "i-0eks00000000009"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-59",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-60",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-61",
+                  "ref": {
+                    "item": "i-0web00000000001"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-62",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-63",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-64",
+                  "ref": {
+                    "item": "i-0web00000000002"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-65",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-66",
+                  "ref": {
+                    "item": "elb-prod-nlb"
+                  }
+                },
+                {
+                  "id": "anc-67",
+                  "ref": {
+                    "item": "i-0api00000000006"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-68",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-69",
+                  "ref": {
+                    "item": "i-0bast0000000003"
+                  }
+                },
+                {
+                  "id": "anc-70",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-71",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-72",
+                  "ref": {
+                    "item": "i-0web00000000001"
+                  }
+                },
+                {
+                  "id": "anc-73",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-74",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-75",
+                  "ref": {
+                    "item": "i-0api00000000006"
+                  }
+                },
+                {
+                  "id": "anc-76",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-77",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-78",
+                  "ref": {
+                    "item": "i-0eks00000000004"
+                  }
+                },
+                {
+                  "id": "anc-79",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-80",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-81",
+                  "ref": {
+                    "item": "i-0eks00000000005"
+                  }
+                },
+                {
+                  "id": "anc-82",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-83",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-84",
+                  "ref": {
+                    "item": "i-0web00000000002"
+                  }
+                },
+                {
+                  "id": "anc-85",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-86",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-87",
+                  "ref": {
+                    "item": "i-0app00000000007"
+                  }
+                },
+                {
+                  "id": "anc-88",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-89",
+              "color": "col-egress",
+              "style": "DOTTED",
+              "width": 4,
+              "anchors": [
+                {
+                  "id": "anc-90",
+                  "ref": {
+                    "item": "i-0eks00000000009"
+                  }
+                },
+                {
+                  "id": "anc-91",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-92",
+              "color": "col-egress",
+              "style": "DASHED",
+              "width": 6,
+              "anchors": [
+                {
+                  "id": "anc-93",
+                  "ref": {
+                    "item": "nat-nat-0a0a0a0a"
+                  }
+                },
+                {
+                  "id": "anc-94",
+                  "ref": {
+                    "item": "igw-node-igw-0aaa1111"
+                  }
+                }
+              ]
+            }
+          ],
+          "textBoxes": [
+            {
+              "id": "txt-1",
+              "tile": {
+                "x": -21,
+                "y": -14
+              },
+              "content": "AZ ap-northeast-2a",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-3",
+              "tile": {
+                "x": -21,
+                "y": -13
+              },
+              "content": "prod-public-a (10.0.0.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-5",
+              "tile": {
+                "x": -21,
+                "y": -7
+              },
+              "content": "subnet-0db00a (10.0.20.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-7",
+              "tile": {
+                "x": -21,
+                "y": -1
+              },
+              "content": "private-a (10.0.10.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-8",
+              "tile": {
+                "x": -21,
+                "y": 13
+              },
+              "content": "+2 more Lambda",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-10",
+              "tile": {
+                "x": -21,
+                "y": 13
+              },
+              "content": "RDS",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-12",
+              "tile": {
+                "x": -21,
+                "y": 19
+              },
+              "content": "MSK",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-13",
+              "tile": {
+                "x": -6,
+                "y": -14
+              },
+              "content": "AZ ap-northeast-2c",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-15",
+              "tile": {
+                "x": -6,
+                "y": -13
+              },
+              "content": "prod-public-c (10.0.1.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-17",
+              "tile": {
+                "x": -6,
+                "y": -7
+              },
+              "content": "prod-isolated-c (10.0.21.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-19",
+              "tile": {
+                "x": -6,
+                "y": -1
+              },
+              "content": "prod-private-c (10.0.11.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-21",
+              "tile": {
+                "x": -6,
+                "y": 5
+              },
+              "content": "ElastiCache",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-23",
+              "tile": {
+                "x": -6,
+                "y": 11
+              },
+              "content": "MSK",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-25",
+              "tile": {
+                "x": -6,
+                "y": 17
+              },
+              "content": "OpenSearch",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-27",
+              "tile": {
+                "x": -11,
+                "y": -21
+              },
+              "content": "Load Balancer (ingress)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-29",
+              "tile": {
+                "x": -24,
+                "y": -23
+              },
+              "content": "prod-vpc (10.0.0.0/16)",
+              "fontSize": 0.35
+            },
+            {
+              "id": "txt-31",
+              "tile": {
+                "x": -16,
+                "y": 4
+              },
+              "content": "EKS prod-eks",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-33",
+              "tile": {
+                "x": -1,
+                "y": 4
+              },
+              "content": "EKS prod-eks",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-34",
+              "tile": {
+                "x": 8,
+                "y": 13
+              },
+              "content": "+2 more endpoints",
+              "fontSize": 0.22
+            },
+            {
+              "id": "txt-35",
+              "tile": {
+                "x": 12,
+                "y": -22
+              },
+              "content": "Account-global (external)",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-37",
+              "tile": {
+                "x": 12,
+                "y": -21
+              },
+              "content": "S3",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-39",
+              "tile": {
+                "x": 12,
+                "y": -15
+              },
+              "content": "DynamoDB",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-41",
+              "tile": {
+                "x": 12,
+                "y": -9
+              },
+              "content": "CloudFront",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-43",
+              "tile": {
+                "x": 12,
+                "y": -3
+              },
+              "content": "Route 53",
+              "fontSize": 0.25
+            }
+          ]
+        }
+      ],
+      "fitToScreen": true
+    }
+  },
+  {
+    "label": "prod all layers off",
+    "model": {
+      "title": "AWSops - prod-vpc",
+      "description": "Auto-generated from Steampipe data (vpc-0aaa1111, 10.0.0.0/16)",
+      "colors": [
+        {
+          "id": "col-vpc",
+          "value": "#ede9fe"
+        },
+        {
+          "id": "col-pub",
+          "value": "#dcedc8"
+        },
+        {
+          "id": "col-prv",
+          "value": "#d0e7f5"
+        },
+        {
+          "id": "col-alb",
+          "value": "#e2d9f3"
+        },
+        {
+          "id": "col-eks",
+          "value": "#fcd9a8"
+        },
+        {
+          "id": "col-ext",
+          "value": "#e7e7ee"
+        },
+        {
+          "id": "col-edge",
+          "value": "#2563eb"
+        },
+        {
+          "id": "col-egress",
+          "value": "#9ca3af"
+        }
+      ],
+      "items": [
+        {
+          "id": "nat-nat-0a0a0a0a",
+          "name": "NAT GW (2a)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0bast0000000003",
+          "name": "i-0bast0",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0web00000000001",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0api00000000006",
+          "name": "api",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000004",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000005",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "nat-nat-0c0c0c0c",
+          "name": "NAT GW (2c)",
+          "icon": "router"
+        },
+        {
+          "id": "i-0web00000000002",
+          "name": "web (i-0web00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0app00000000007",
+          "name": "app",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "i-0eks00000000009",
+          "name": "eks-worker (i-0eks00)",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "elb-prod-alb",
+          "name": "prod-alb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internet-facing"
+        },
+        {
+          "id": "elb-prod-nlb",
+          "name": "prod-nlb",
+          "icon": "aws-elastic-load-balancing",
+          "description": "internal"
+        },
+        {
+          "id": "internet",
+          "name": "Internet",
+          "icon": "cloud"
+        }
+      ],
+      "views": [
+        {
+          "id": "view-main",
+          "name": "prod-vpc topology",
+          "items": [
+            {
+              "id": "nat-nat-0a0a0a0a",
+              "tile": {
+                "x": -9,
+                "y": 3
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0bast0000000003",
+              "tile": {
+                "x": -5,
+                "y": 3
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0web00000000001",
+              "tile": {
+                "x": -1,
+                "y": 3
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0api00000000006",
+              "tile": {
+                "x": -9,
+                "y": 9
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000004",
+              "tile": {
+                "x": -5,
+                "y": 9
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0eks00000000005",
+              "tile": {
+                "x": -1,
+                "y": 9
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "nat-nat-0c0c0c0c",
+              "tile": {
+                "x": 6,
+                "y": 3
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0web00000000002",
+              "tile": {
+                "x": 10,
+                "y": 3
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "i-0app00000000007",
+              "tile": {
+                "x": 6,
+                "y": 9
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "i-0eks00000000009",
+              "tile": {
+                "x": 10,
+                "y": 9
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "elb-prod-alb",
+              "tile": {
+                "x": -2,
+                "y": -6
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "elb-prod-nlb",
+              "tile": {
+                "x": 2,
+                "y": -6
+              },
+              "labelHeight": 140
+            },
+            {
+              "id": "internet",
+              "tile": {
+                "x": 0,
+                "y": -12
+              }
+            }
+          ],
+          "rectangles": [
+            {
+              "id": "rect-2",
+              "color": "col-pub",
+              "from": {
+                "x": -11,
+                "y": 1
+              },
+              "to": {
+                "x": 1,
+                "y": 5
+              }
+            },
+            {
+              "id": "rect-4",
+              "color": "col-prv",
+              "from": {
+                "x": -11,
+                "y": 7
+              },
+              "to": {
+                "x": 1,
+                "y": 11
+              }
+            },
+            {
+              "id": "rect-7",
+              "color": "col-pub",
+              "from": {
+                "x": 4,
+                "y": 1
+              },
+              "to": {
+                "x": 12,
+                "y": 5
+              }
+            },
+            {
+              "id": "rect-9",
+              "color": "col-prv",
+              "from": {
+                "x": 4,
+                "y": 7
+              },
+              "to": {
+                "x": 12,
+                "y": 11
+              }
+            },
+            {
+              "id": "rect-11",
+              "color": "col-alb",
+              "from": {
+                "x": -3,
+                "y": -7
+              },
+              "to": {
+                "x": 3,
+                "y": -5
+              }
+            },
+            {
+              "id": "rect-13",
+              "color": "col-vpc",
+              "from": {
+                "x": -14,
+                "y": -9
+              },
+              "to": {
+                "x": 14,
+                "y": 12
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "conn-15",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "description": "HTTPS",
+              "anchors": [
+                {
+                  "id": "anc-16",
+                  "ref": {
+                    "item": "internet"
+                  }
+                },
+                {
+                  "id": "anc-17",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-18",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-19",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-20",
+                  "ref": {
+                    "item": "i-0eks00000000004"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-21",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-22",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-23",
+                  "ref": {
+                    "item": "i-0eks00000000005"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-24",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-25",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-26",
+                  "ref": {
+                    "item": "i-0eks00000000009"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-27",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-28",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-29",
+                  "ref": {
+                    "item": "i-0web00000000001"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-30",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-31",
+                  "ref": {
+                    "item": "elb-prod-alb"
+                  }
+                },
+                {
+                  "id": "anc-32",
+                  "ref": {
+                    "item": "i-0web00000000002"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "conn-33",
+              "color": "col-edge",
+              "style": "SOLID",
+              "width": 8,
+              "anchors": [
+                {
+                  "id": "anc-34",
+                  "ref": {
+                    "item": "elb-prod-nlb"
+                  }
+                },
+                {
+                  "id": "anc-35",
+                  "ref": {
+                    "item": "i-0api00000000006"
+                  }
+                }
+              ]
+            }
+          ],
+          "textBoxes": [
+            {
+              "id": "txt-1",
+              "tile": {
+                "x": -11,
+                "y": -1
+              },
+              "content": "AZ ap-northeast-2a",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-3",
+              "tile": {
+                "x": -11,
+                "y": 0
+              },
+              "content": "prod-public-a (10.0.0.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-5",
+              "tile": {
+                "x": -11,
+                "y": 6
+              },
+              "content": "private-a (10.0.10.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-6",
+              "tile": {
+                "x": 4,
+                "y": -1
+              },
+              "content": "AZ ap-northeast-2c",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-8",
+              "tile": {
+                "x": 4,
+                "y": 0
+              },
+              "content": "prod-public-c (10.0.1.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-10",
+              "tile": {
+                "x": 4,
+                "y": 6
+              },
+              "content": "prod-private-c (10.0.11.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-12",
+              "tile": {
+                "x": -3,
+                "y": -8
+              },
+              "content": "Load Balancer (ingress)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-14",
+              "tile": {
+                "x": -14,
+                "y": -10
+              },
+              "content": "prod-vpc (10.0.0.0/16)",
+              "fontSize": 0.35
+            }
+          ]
+        }
+      ],
+      "fitToScreen": true
+    }
+  },
+  {
+    "label": "dev (no route tables)",
+    "model": {
+      "title": "AWSops - dev-vpc",
+      "description": "Auto-generated from Steampipe data (vpc-0bbb2222, 10.1.0.0/16)",
+      "colors": [
+        {
+          "id": "col-vpc",
+          "value": "#ede9fe"
+        },
+        {
+          "id": "col-pub",
+          "value": "#dcedc8"
+        },
+        {
+          "id": "col-prv",
+          "value": "#d0e7f5"
+        },
+        {
+          "id": "col-alb",
+          "value": "#e2d9f3"
+        },
+        {
+          "id": "col-eks",
+          "value": "#fcd9a8"
+        },
+        {
+          "id": "col-ext",
+          "value": "#e7e7ee"
+        },
+        {
+          "id": "col-edge",
+          "value": "#2563eb"
+        },
+        {
+          "id": "col-egress",
+          "value": "#9ca3af"
+        }
+      ],
+      "items": [
+        {
+          "id": "i-0dev00000000010",
+          "name": "dev",
+          "icon": "aws-ec2"
+        },
+        {
+          "id": "internet",
+          "name": "Internet",
+          "icon": "cloud"
+        }
+      ],
+      "views": [
+        {
+          "id": "view-main",
+          "name": "dev-vpc topology",
+          "items": [
+            {
+              "id": "i-0dev00000000010",
+              "tile": {
+                "x": 0,
+                "y": 4
+              },
+              "labelHeight": 60
+            },
+            {
+              "id": "internet",
+              "tile": {
+                "x": 0,
+                "y": -6
+              }
+            }
+          ],
+          "rectangles": [
+            {
+              "id": "rect-2",
+              "color": "col-pub",
+              "from": {
+                "x": -2,
+                "y": 2
+              },
+              "to": {
+                "x": 2,
+                "y": 6
+              }
+            },
+            {
+              "id": "rect-4",
+              "color": "col-vpc",
+              "from": {
+                "x": -5,
+                "y": -3
+              },
+              "to": {
+                "x": 5,
+                "y": 7
+              }
+            }
+          ],
+          "connectors": [],
+          "textBoxes": [
+            {
+              "id": "txt-1",
+              "tile": {
+                "x": -2,
+                "y": 0
+              },
+              "content": "AZ ap-northeast-2a",
+              "fontSize": 0.3
+            },
+            {
+              "id": "txt-3",
+              "tile": {
+                "x": -2,
+                "y": 1
+              },
+              "content": "dev-public (10.1.0.0/24)",
+              "fontSize": 0.25
+            },
+            {
+              "id": "txt-5",
+              "tile": {
+                "x": -5,
+                "y": -4
+              },
+              "content": "dev-vpc (10.1.0.0/16)",
+              "fontSize": 0.35
+            }
+          ]
+        }
+      ],
+      "fitToScreen": true
+    }
+  }
+]

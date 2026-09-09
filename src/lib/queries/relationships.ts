@@ -26,6 +26,7 @@ export const queries = {
       s.subnet_id,
       s.cidr_block AS subnet_cidr,
       s.availability_zone,
+      s.map_public_ip_on_launch,
       s.tags ->> 'Name' AS subnet_name
     FROM aws_vpc v
     LEFT JOIN aws_vpc_subnet s ON v.vpc_id = s.vpc_id
