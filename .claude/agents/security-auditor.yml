@@ -38,7 +38,7 @@ prompt: |
      - No shell=true or backtick interpolation
 
   4. **Auth**:
-     - API routes should validate Cognito JWT where required
+     - Admin-only API actions must go through isSingleUser() / adminEmails gating (no auth layer in front)
      - HttpOnly cookies must be server-side deleted (POST /api/auth)
      - /accounts page restricted to adminEmails config
 

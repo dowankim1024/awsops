@@ -35,7 +35,7 @@ PORT=3000 npm run start &
 
 ### 3. 검증 / Verify
 ```bash
-curl -s http://localhost:3000/awsops  # 200 응답이 와야 함 (should return 200)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:3000  # 200 응답이 와야 함 (should return 200)
 bash scripts/11-verify.sh             # 전체 점검 (full check)
 ```
 

@@ -45,12 +45,9 @@
   "common.back": "뒤로",
   "common.close": "닫기",
   "common.lastChecked": "마지막 확인:",
-
   "sidebar.tagline": "클라우드 운영 대시보드",
   "sidebar.signOut": "로그아웃",
   "sidebar.dashboard": "대시보드",
-  "sidebar.aiAssistant": "AI 어시스턴트",
-  "sidebar.agentcore": "AgentCore",
   "sidebar.diagnosis": "AI 종합진단",
   "sidebar.accounts": "계정 관리",
   "sidebar.compute": "컴퓨팅",
@@ -68,6 +65,7 @@
   "sidebar.waf": "WAF",
   "sidebar.topology": "토폴로지맵",
   "sidebar.topologyView": "토폴로지뷰",
+  "sidebar.topology3d": "3D 토폴로지",
   "sidebar.diagram": "다이어그램",
   "sidebar.storageDb": "스토리지 & DB",
   "sidebar.ebs": "EBS",
@@ -93,7 +91,6 @@
   "sidebar.costOff": "OFF",
   "sidebar.datasources": "데이터소스",
   "sidebar.datasourceExplore": "데이터소스 탐색",
-
   "datasources.title": "데이터소스",
   "datasources.subtitle": "외부 데이터소스 관리 (Prometheus, Loki, Tempo, ClickHouse)",
   "datasources.total": "전체",
@@ -165,7 +162,6 @@
   "datasources.generateQuery": "생성",
   "datasources.aiGenerated": "AI가 생성한 쿼리 — 확인 후 실행하세요",
   "datasources.naturalLanguage": "자연어",
-
   "dashboard.title": "AWSops 대시보드",
   "dashboard.computeContainers": "컴퓨팅 & 컨테이너",
   "dashboard.networkStorage": "네트워크 & 스토리지",
@@ -174,8 +170,6 @@
   "dashboard.ec2Change": "{running}개 실행 중 · {stopped}개 중지됨",
   "dashboard.lambdaLabel": "Lambda",
   "dashboard.lambdaChange": "런타임 {runtimes}개 · 긴 타임아웃 {longTimeout}개",
-  "dashboard.agentcoreLabel": "AgentCore",
-  "dashboard.agentcoreChange": "125 도구 · 19 Lambda · 멀티 라우트",
   "dashboard.ecrLabel": "ECR",
   "dashboard.ecrChange": "스캔 {scan}개 · 불변 {immutable}개",
   "dashboard.eksLabel": "EKS",
@@ -246,7 +240,6 @@
   "dashboard.secondsAgo": "{count}초 전",
   "dashboard.minutesAgo": "{count}분 전",
   "dashboard.hoursAgo": "{count}시간 전",
-
   "ec2.title": "EC2 인스턴스",
   "ec2.subtitle": "모든 리전의 Elastic Compute Cloud 인스턴스",
   "ec2.instanceId": "인스턴스 ID",
@@ -268,7 +261,6 @@
   "ec2.totalInstances": "전체 인스턴스",
   "ec2.runningInstances": "실행 중",
   "ec2.stoppedInstances": "중지됨",
-
   "lambda.title": "Lambda 함수",
   "lambda.subtitle": "모든 리전의 서버리스 함수",
   "lambda.functionName": "함수 이름",
@@ -285,7 +277,6 @@
   "lambda.longTimeout": "긴 타임아웃",
   "lambda.packageType": "패키지 유형",
   "lambda.architecture": "아키텍처",
-
   "ecs.title": "ECS",
   "ecs.subtitle": "Elastic Container Service 클러스터, 서비스, 태스크",
   "ecs.clusters": "클러스터",
@@ -304,7 +295,6 @@
   "ecs.cpu": "CPU",
   "ecs.containerInstances": "컨테이너 인스턴스",
   "ecs.noClusters": "ECS 클러스터가 없습니다",
-
   "ecr.title": "ECR 리포지토리",
   "ecr.subtitle": "Elastic Container Registry 리포지토리 및 이미지",
   "ecr.repoName": "리포지토리",
@@ -317,7 +307,6 @@
   "ecr.noRepos": "ECR 리포지토리가 없습니다",
   "ecr.totalRepos": "전체 리포지토리",
   "ecr.totalImages": "전체 이미지",
-
   "k8s.title": "EKS 개요",
   "k8s.subtitle": "쿠버네티스 클러스터, 노드, 워크로드",
   "k8s.noAccess.title": "EKS 클러스터 접근 권한이 필요합니다",
@@ -381,7 +370,6 @@
   "k8s.selector": "셀렉터",
   "k8s.strategy": "전략",
   "k8s.image": "이미지",
-
   "vpc.title": "VPC / 네트워크",
   "vpc.subtitle": "가상 프라이빗 클라우드, 서브넷, 네트워크 구성요소",
   "vpc.vpcs": "VPC",
@@ -405,7 +393,6 @@
   "vpc.resourceMap": "리소스 맵",
   "vpc.routeTables": "라우트 테이블",
   "vpc.endpoints": "엔드포인트",
-
   "cloudfront.title": "CloudFront",
   "cloudfront.subtitle": "CloudFront CDN 배포",
   "cloudfront.distributionId": "배포 ID",
@@ -419,7 +406,6 @@
   "cloudfront.noDistributions": "CloudFront 배포가 없습니다",
   "cloudfront.totalDistributions": "전체 배포",
   "cloudfront.enabledDistributions": "활성",
-
   "waf.title": "WAF",
   "waf.subtitle": "웹 애플리케이션 방화벽 ACL 및 규칙",
   "waf.webAcls": "Web ACL",
@@ -430,7 +416,6 @@
   "waf.rules": "규칙",
   "waf.defaultAction": "기본 동작",
   "waf.noWebAcls": "WAF Web ACL이 없습니다",
-
   "topology.title": "토폴로지맵",
   "topologyView.title": "토폴로지뷰",
   "topologyView.subtitle": "인프라 구성도",
@@ -464,7 +449,6 @@
   "topology.zoomOut": "축소",
   "topology.fitView": "화면에 맞추기",
   "topology.resetLayout": "레이아웃 초기화",
-
   "ebs.title": "EBS 볼륨",
   "ebs.subtitle": "Elastic Block Store 볼륨 및 스냅샷",
   "ebs.volumes": "볼륨",
@@ -482,7 +466,6 @@
   "ebs.totalSize": "전체 크기",
   "ebs.attachedVolumes": "연결됨",
   "ebs.unencryptedVolumes": "미암호화",
-
   "s3.title": "S3 버킷",
   "s3.subtitle": "Simple Storage Service 버킷",
   "s3.bucketName": "버킷 이름",
@@ -498,7 +481,6 @@
   "s3.storageBreakdown": "스토리지 분석",
   "s3.objectCount": "객체 수",
   "s3.bucketSize": "버킷 크기",
-
   "rds.title": "RDS 인스턴스",
   "rds.subtitle": "관계형 데이터베이스 서비스 인스턴스",
   "rds.dbIdentifier": "DB 식별자",
@@ -520,7 +502,6 @@
   "rds.readIops": "읽기 IOPS",
   "rds.writeIops": "쓰기 IOPS",
   "rds.storageType": "스토리지 유형",
-
   "dynamodb.title": "DynamoDB 테이블",
   "dynamodb.subtitle": "DynamoDB 테이블 및 인덱스",
   "dynamodb.tableName": "테이블 이름",
@@ -536,7 +517,6 @@
   "dynamodb.totalTables": "전체 테이블",
   "dynamodb.readCapacity": "읽기 용량",
   "dynamodb.writeCapacity": "쓰기 용량",
-
   "elasticache.title": "ElastiCache",
   "elasticache.subtitle": "ElastiCache 클러스터 (Valkey/Redis/Memcached)",
   "elasticache.clusterId": "클러스터 ID",
@@ -555,7 +535,6 @@
   "elasticache.memoryUsage": "메모리 사용량",
   "elasticache.connections": "연결 수",
   "elasticache.cacheHitRate": "캐시 적중률",
-
   "opensearch.title": "OpenSearch",
   "opensearch.subtitle": "OpenSearch 도메인",
   "opensearch.domainName": "도메인 이름",
@@ -572,7 +551,6 @@
   "opensearch.clusterStatus": "클러스터 상태",
   "opensearch.searchRate": "검색 비율",
   "opensearch.indexingRate": "인덱싱 비율",
-
   "msk.title": "MSK 클러스터",
   "msk.subtitle": "Apache Kafka 관리형 스트리밍",
   "msk.clusterName": "클러스터 이름",
@@ -589,7 +567,6 @@
   "msk.memoryUsage": "메모리 사용량",
   "msk.networkIn": "네트워크 수신",
   "msk.networkOut": "네트워크 송신",
-
   "monitoring.title": "모니터링",
   "monitoring.subtitle": "시스템 메트릭 — CPU, 메모리, 네트워크, 디스크 I/O",
   "monitoring.cpuUtilization": "CPU 사용률",
@@ -598,7 +575,6 @@
   "monitoring.diskIO": "디스크 I/O",
   "monitoring.instanceMetrics": "인스턴스 메트릭",
   "monitoring.noMetrics": "메트릭 데이터 없음",
-
   "bedrock.title": "Bedrock 사용량",
   "bedrock.subtitle": "Amazon Bedrock 모델 사용량 및 토큰 추적",
   "bedrock.modelId": "모델 ID",
@@ -618,7 +594,6 @@
   "bedrock.cacheHits": "캐시 적중",
   "bedrock.cacheMisses": "캐시 미스",
   "bedrock.tokenCosts": "토큰 비용",
-
   "cloudwatch.title": "CloudWatch 알람",
   "cloudwatch.subtitle": "CloudWatch 알람 및 메트릭",
   "cloudwatch.alarmName": "알람 이름",
@@ -634,7 +609,6 @@
   "cloudwatch.insufficientData": "데이터 부족",
   "cloudwatch.comparisonOperator": "비교 연산자",
   "cloudwatch.evaluationPeriods": "평가 기간",
-
   "cloudtrail.title": "CloudTrail",
   "cloudtrail.subtitle": "CloudTrail 트레일 및 이벤트",
   "cloudtrail.trails": "트레일",
@@ -654,7 +628,6 @@
   "cloudtrail.activeTrails": "활성",
   "cloudtrail.multiRegionTrails": "멀티 리전",
   "cloudtrail.validatedTrails": "검증됨",
-
   "cost.title": "비용 탐색기",
   "cost.subtitle": "AWS 비용 분석 및 내역",
   "cost.serviceName": "서비스",
@@ -671,7 +644,6 @@
   "cost.mom": "전월 대비",
   "cost.costUnavailable": "이 계정에서 Cost Explorer를 사용할 수 없습니다",
   "cost.snapshotFallback": "스냅샷 데이터 표시 (마지막 사용 가능한 비용 데이터)",
-
   "inventory.exportXlsx": "XLSX 다운로드",
   "inventory.exporting": "생성 중...",
   "inventory.exportingHint": "리소스별 시트를 생성하고 있습니다 (수 초 소요)",
@@ -684,7 +656,6 @@
   "inventory.noInventory": "인벤토리 데이터 없음",
   "inventory.countTrend": "수량 추이",
   "inventory.costImpact": "비용 영향 추정",
-
   "containerCost.title": "ECS 컨테이너 비용",
   "containerCost.subtitle": "ECS Fargate 컨테이너 비용 분석 (Container Insights + Fargate 가격)",
   "containerCost.clusterName": "클러스터",
@@ -699,7 +670,6 @@
   "containerCost.fargatePricing": "Fargate 가격",
   "containerCost.perVCPU": "vCPU당/시간",
   "containerCost.perGB": "GB당/시간",
-
   "eksContainerCost.title": "EKS 컨테이너 비용",
   "eksContainerCost.subtitle": "EKS 컨테이너 비용 분석 (OpenCost + Request 기반 폴백)",
   "eksContainerCost.namespace": "네임스페이스",
@@ -712,7 +682,6 @@
   "eksContainerCost.noData": "EKS 비용 데이터 없음",
   "eksContainerCost.openCostSource": "데이터 소스: OpenCost",
   "eksContainerCost.requestSource": "데이터 소스: Request 기반 추정",
-
   "iam.title": "IAM",
   "iam.subtitle": "자격 증명 및 접근 관리 — 사용자, 역할, 정책",
   "iam.users": "사용자",
@@ -736,7 +705,6 @@
   "iam.path": "경로",
   "iam.createDate": "생성일",
   "iam.attachedPolicies": "연결된 정책",
-
   "security.title": "보안",
   "security.subtitle": "보안 발견 — 퍼블릭 S3, 개방 SG, 미암호화 EBS, CVE",
   "security.publicS3Buckets": "퍼블릭 S3 버킷",
@@ -754,7 +722,6 @@
   "security.volumeId": "볼륨 ID",
   "security.finding": "발견 항목",
   "security.severity": "심각도",
-
   "compliance.title": "CIS 컴플라이언스",
   "compliance.subtitle": "CIS 벤치마크 컴플라이언스 평가 (v1.5 ~ v4.0)",
   "compliance.benchmark": "벤치마크",
@@ -774,63 +741,6 @@
   "compliance.skipped": "스킵",
   "compliance.errored": "오류",
   "compliance.selectBenchmark": "벤치마크 선택",
-
-  "ai.title": "AI 어시스턴트",
-  "ai.subtitle": "Amazon Bedrock + AgentCore 기반",
-  "ai.placeholder": "AWS 리소스에 대해 질문하세요...",
-  "ai.send": "전송",
-  "ai.stop": "중지",
-  "ai.thinking": "생각 중...",
-  "ai.newChat": "새 대화",
-  "ai.chatHistory": "대화 기록",
-  "ai.toolUsed": "사용된 도구",
-  "ai.routedTo": "라우팅 대상",
-  "ai.tokenUsage": "토큰 사용량",
-  "ai.inputTokens": "입력",
-  "ai.outputTokens": "출력",
-  "ai.estimatedCost": "예상 비용",
-  "ai.noMessages": "메시지가 없습니다. AWS 환경에 대해 무엇이든 물어보세요!",
-  "ai.multiRoute": "멀티 라우트",
-
-  "agentcore.title": "AgentCore",
-  "agentcore.subtitle": "Bedrock AgentCore 런타임, 게이트웨이, 도구",
-  "agentcore.runtime": "런타임",
-  "agentcore.gateways": "게이트웨이",
-  "agentcore.tools": "도구",
-  "agentcore.runtimeStatus": "런타임 상태",
-  "agentcore.gatewayStatus": "게이트웨이 상태",
-  "agentcore.callStats": "호출 통계",
-  "agentcore.totalCalls": "총 호출",
-  "agentcore.avgResponseTime": "평균 응답 시간",
-  "agentcore.gatewayName": "게이트웨이",
-  "agentcore.toolCount": "도구 수",
-  "agentcore.calls": "호출",
-  "agentcore.tokens": "토큰",
-  "agentcore.conversationHistory": "대화 기록",
-  "agentcore.noHistory": "대화 기록 없음",
-  "agentcore.searchHistory": "기록 검색...",
-  "agentcore.modelUsage": "모델 사용량",
-  "agentcore.codeInterpreter": "코드 인터프리터",
-  "agentcore.memory": "메모리",
-  "agentcore.architecture": "아키텍처",
-  "agentcore.mcpTools": "게이트웨이별 MCP 도구 (총 125개)",
-  "agentcore.successRate": "성공률",
-  "agentcore.multiRoute": "멀티 라우트",
-  "agentcore.steampipeSql": "Steampipe SQL",
-  "agentcore.usedTools": "사용된 도구",
-  "agentcore.totalToolCalls": "총 {count}회 호출",
-  "agentcore.successFail": "{success} 성공 · {fail} 실패",
-  "agentcore.avgOf": "{count}건 평균",
-  "agentcore.parallelGateway": "병렬 Gateway 호출",
-  "agentcore.awsDataRoute": "aws-data 라우트",
-  "agentcore.callsByRoute": "라우트별 호출 수",
-  "agentcore.recentCalls": "최근 호출 (최대 10건)",
-  "agentcore.noCallHistory": "아직 호출 기록이 없습니다",
-  "agentcore.searchBtn": "검색",
-  "agentcore.historyCount": "{count}건",
-  "agentcore.cache": "AgentCore 캐시",
-  "agentcore.originalFetch": "원본 조회",
-
   "ec2.subtitle2": "Elastic Compute Cloud",
   "ec2.searchPlaceholder": "검색 (ID, 이름, IP...)",
   "ec2.allStates": "전체 상태",
@@ -864,7 +774,6 @@
   "ec2.networkInterfaces": "네트워크 인터페이스",
   "ec2.rootDevice": "루트 디바이스",
   "ec2.deleteOnTermination": "종료 시 삭제",
-
   "lambda.subtitle2": "서버리스 컴퓨팅",
   "lambda.longTimeoutDesc": "타임아웃 > 300초 함수",
   "lambda.runtimeDistribution": "런타임 분포",
@@ -880,7 +789,6 @@
   "lambda.lastUpdate": "마지막 업데이트",
   "lambda.layers": "레이어",
   "lambda.notInVpc": "VPC 외부",
-
   "ecs.subtitle2": "Elastic Container Service",
   "ecs.runningTasks": "실행 중 태스크",
   "ecs.pendingTasks": "대기 중 태스크",
@@ -891,12 +799,10 @@
   "ecs.noSettings": "설정 없음",
   "ecs.noTags": "태그 없음",
   "ecs.strategy": "전략",
-
   "ecr.subtitle2": "Elastic Container Registry",
   "ecr.tagMutability": "태그 변경 가능성",
   "ecr.registryId": "레지스트리 ID",
   "ecr.imageScanEnabled": "이미지 스캔 활성",
-
   "k8s.subtitle2": "클러스터 상태 및 리소스 요약",
   "k8s.clusterVpcFilter": "클러스터 / VPC 필터",
   "k8s.clearAll": "모두 지우기",
@@ -930,7 +836,6 @@
   "k8s.node": "노드",
   "k8s.podIp": "파드 IP",
   "k8s.serviceAccount": "서비스 계정",
-
   "k8s.explorerAutoRefresh": "자동 30초",
   "k8s.explorerAutoOff": "자동 끄기",
   "k8s.explorerSearch": "검색...",
@@ -941,7 +846,6 @@
   "k8s.explorerPrev": "이전",
   "k8s.explorerNext": "다음",
   "k8s.explorerLoadingResources": "리소스 로딩 중...",
-
   "vpc.subtitle2": "가상 프라이빗 클라우드, 트랜짓 게이트웨이, 로드 밸런서",
   "vpc.sgs": "SG",
   "vpc.nat": "NAT",
@@ -978,7 +882,6 @@
   "vpc.internetGateway": "인터넷 게이트웨이",
   "vpc.attachments": "연결",
   "vpc.noNatGws": "NAT GW 없음",
-
   "cloudfront.subtitle2": "콘텐츠 전송 네트워크",
   "cloudfront.protocol": "프로토콜",
   "cloudfront.distribution": "배포",
@@ -988,14 +891,12 @@
   "cloudfront.httpAllowed": "HTTP 허용",
   "cloudfront.allHttps": "전체 HTTPS",
   "cloudfront.considerHttps": "HTTPS 전용 권장",
-
   "waf.subtitle2": "웹 애플리케이션 방화벽",
   "waf.capacity": "용량",
   "waf.priority": "우선순위",
   "waf.action": "동작",
   "waf.noRules": "규칙 없음",
   "waf.webAcl": "Web ACL",
-
   "topology.subtitle2": "AWS 인프라 관계 맵",
   "topology.infrastructure": "인프라",
   "topology.kubernetes": "쿠버네티스",
@@ -1004,7 +905,6 @@
   "topology.searchInfra": "EC2, 서브넷, VPC 검색...",
   "topology.searchK8s": "파드, 서비스 검색...",
   "topology.noResources": "리소스가 없습니다. 새로고침을 클릭하세요.",
-
   "ebs.subtitle2": "Elastic Block Store",
   "ebs.searchVolumes": "볼륨 검색...",
   "ebs.searchSnapshots": "스냅샷 검색...",
@@ -1031,7 +931,6 @@
   "ebs.unattached": "미연결",
   "ebs.actionRequired": "조치 필요",
   "ebs.allEncrypted": "모두 암호화됨",
-
   "s3.subtitle2": "Simple Storage Service",
   "s3.allRegions": "전체 리전",
   "s3.allAccess": "전체 접근",
@@ -1061,7 +960,6 @@
   "s3.iamRolesWithAccess": "S3 접근 IAM 역할",
   "s3.noRolesFound": "S3 접근 역할이 없습니다",
   "s3.noTags": "태그 없음",
-
   "rds.subtitle2": "관계형 데이터베이스 서비스",
   "rds.engines": "엔진",
   "rds.engineDistribution": "엔진 분포",
@@ -1088,7 +986,6 @@
   "rds.netOut": "네트워크 송신",
   "rds.freeStorage": "여유 스토리지",
   "rds.days": "일",
-
   "dynamodb.subtitle2": "NoSQL 데이터베이스 서비스",
   "dynamodb.active": "활성",
   "dynamodb.totalItems": "전체 항목",
@@ -1100,7 +997,6 @@
   "dynamodb.throughput": "처리량",
   "dynamodb.settings": "설정",
   "dynamodb.pointInTimeRecovery": "특정 시점 복구",
-
   "elasticache.subtitle2": "Valkey · Redis · Memcached",
   "elasticache.replGroups": "복제 그룹",
   "elasticache.nodeTypes": "노드 유형",
@@ -1136,7 +1032,6 @@
   "elasticache.memcachedEngine": "Memcached 엔진",
   "elasticache.notInUse": "미사용",
   "elasticache.replicationGroupsLabel": "복제 그룹",
-
   "opensearch.subtitle2": "검색 & 분석",
   "opensearch.searchPlaceholder": "도메인 검색...",
   "opensearch.processing": "처리 중",
@@ -1192,7 +1087,6 @@
   "opensearch.searchLatency": "검색 지연",
   "opensearch.indexLatency": "인덱싱 지연",
   "opensearch.jvmMemory": "JVM 메모리",
-
   "msk.subtitle2": "Apache Kafka 관리형 스트리밍",
   "msk.totalBrokers": "전체 브로커",
   "msk.acrossAllClusters": "전체 클러스터 합계",
@@ -1232,7 +1126,6 @@
   "msk.cloudwatchLogs": "CloudWatch 로그",
   "msk.s3Logs": "S3 로그",
   "msk.firehose": "Firehose",
-
   "monitoring.title2": "성능 모니터",
   "monitoring.subtitle2": "CPU, 메모리, 네트워크, 디스크 I/O 메트릭",
   "monitoring.avgCpu": "평균 CPU (EC2)",
@@ -1265,7 +1158,6 @@
   "monitoring.memoryPercent": "메모리 %",
   "monitoring.k8sNodeResources": "K8s 노드 리소스",
   "monitoring.rdsMemory": "RDS 메모리",
-
   "bedrock.title2": "Bedrock 모니터링",
   "bedrock.subtitle2": "모델 사용량, 토큰 비용 & 프롬프트 캐싱",
   "bedrock.totalCost": "총 비용",
@@ -1284,7 +1176,6 @@
   "bedrock.pricing": "가격",
   "bedrock.notAvailable": "Bedrock 모니터링 사용 불가",
   "bedrock.noModels": "사용 가능한 모델 없음",
-
   "cloudwatch.subtitle2": "모니터링 & 알람",
   "cloudwatch.alarmStateDistribution": "알람 상태 분포",
   "cloudwatch.alarmsByNamespace": "네임스페이스별 알람",
@@ -1299,7 +1190,6 @@
   "cloudwatch.insufficientDataActions": "데이터 부족 동작",
   "cloudwatch.reason": "사유",
   "cloudwatch.seconds": "초",
-
   "cloudtrail.subtitle2": "API 활동 & 감사 로그",
   "cloudtrail.writeEvents": "쓰기 이벤트",
   "cloudtrail.homeRegion": "홈 리전",
@@ -1320,7 +1210,6 @@
   "cloudtrail.write": "쓰기",
   "cloudtrail.organization": "조직",
   "cloudtrail.noEvents": "이벤트가 없습니다",
-
   "cost.subtitle2": "AWS 결제 & 비용 관리",
   "cost.periodThisMonth": "이번 달",
   "cost.periodLastMonth": "지난 달",
@@ -1342,7 +1231,6 @@
   "cost.viewResourceInventory": "리소스 인벤토리 보기",
   "cost.retryLive": "실시간 재시도",
   "cost.showingCachedData": "캐시 데이터 표시",
-
   "inventory.subtitle2": "용량 추적 & 추이 분석",
   "inventory.coreResources": "핵심 리소스",
   "inventory.otherResources": "기타 리소스",
@@ -1358,7 +1246,6 @@
   "inventory.costImpact30d": "비용 영향 추정 (30일 성장)",
   "inventory.noHistory": "인벤토리 기록이 없습니다",
   "inventory.snapshotInfo": "대시보드 로드 시 자동으로 스냅샷이 캡처됩니다",
-
   "containerCost.subtitle2": "Fargate 가격 및 Container Insights 기반 ECS 태스크 비용 분석",
   "containerCost.monthlyEstimate": "월간 예상",
   "containerCost.runningTasks": "실행 태스크",
@@ -1380,7 +1267,6 @@
   "containerCost.calcFormula": "계산 공식",
   "containerCost.example": "예시",
   "containerCost.notes": "참고",
-
   "eksContainerCost.subtitle2": "리소스 요청 및 EC2 노드 가격 기반 파드 비용 추정",
   "eksContainerCost.podCostDaily": "파드 비용 (일간)",
   "eksContainerCost.podCostMonthly": "파드 비용 (월간)",
@@ -1395,7 +1281,6 @@
   "eksContainerCost.totalPerDay": "일간 합계",
   "eksContainerCost.hourlyRate": "시간당 요금",
   "eksContainerCost.costCalcBasis": "비용 계산 기준",
-
   "iam.subtitle2": "자격 증명 & 접근 관리",
   "iam.customPolicies": "커스텀 정책",
   "iam.mfaStatus": "MFA 상태",
@@ -1410,7 +1295,6 @@
   "iam.never": "없음",
   "iam.mfaWarning": "MFA 미설정 IAM 사용자 {count}명",
   "iam.mfaAdvice": "모든 사용자에게 MFA를 활성화해야 합니다.",
-
   "security.subtitle2": "보안 상태 & 취약점",
   "security.mfaIssues": "MFA 이슈",
   "security.openSgs": "개방 SG",
@@ -1456,74 +1340,12 @@
   "security.noVolumes": "볼륨이 없습니다",
   "security.noVulnerabilities": "취약점이 없습니다",
   "security.publicBucketsLabel": "퍼블릭 버킷",
-
   "compliance.subtitle2": "AWS CIS 벤치마크 평가",
   "compliance.mayTake2to5min": "2-5분 정도 소요됩니다...",
   "compliance.sections": "섹션",
   "compliance.alarmsBySection": "섹션별 알람",
   "compliance.complianceStatus": "컴플라이언스 상태",
   "compliance.selectAndRun": "벤치마크를 선택하고 \"벤치마크 실행\"을 클릭하세요",
-
-  "ai.subtitle2": "Amazon Bedrock AgentCore 기반",
-  "ai.welcomeTitle": "AWSops AI 어시스턴트",
-  "ai.processing": "처리 중...",
-  "ai.copied": "복사됨",
-  "ai.tokens": "토큰:",
-  "ai.in": "입력",
-  "ai.out": "출력",
-  "ai.cost": "비용",
-  "ai.queries": "질문",
-  "ai.avg": "평균",
-  "ai.conversationHistory": "대화 이력",
-  "ai.welcomeDesc1": "AWS 인프라에 대해 질문하세요.",
-  "ai.welcomeDesc2": "Amazon Bedrock AgentCore가 LLM과 Tools를 활용해 답변을 드립니다.",
-  "ai.suggestion1": "EC2 인스턴스 현황을 알려줘",
-  "ai.suggestion2": "VPC 네트워크 구성을 분석해줘",
-  "ai.suggestion3": "RDS 데이터베이스 상태를 확인해줘",
-  "ai.suggestion4": "보안 이슈가 있는지 확인해줘",
-  "ai.suggestion5": "현재 비용 현황을 보여줘",
-  "ai.suggestion6": "EKS 클러스터 상태를 알려줘",
-  "ai.suggestion7": "전체 리소스 현황을 요약해줘",
-  "ai.copy": "복사",
-  "ai.queried": "조회:",
-  "ai.tools": "도구:",
-  "ai.analyzing": "질문 분석 중...",
-  "ai.noHistory": "아직 대화 이력이 없습니다. 질문을 시작해보세요.",
-  "ai.historyCount": "{count}건",
-  "ai.followup.security1": "IAM 사용자 목록과 Access Key 상태를 보여줘",
-  "ai.followup.security2": "MFA가 설정되지 않은 사용자가 있는지 확인해줘",
-  "ai.followup.security3": "보안그룹 중 0.0.0.0/0 인바운드가 있는지 확인해줘",
-  "ai.followup.network1": "VPC 서브넷과 라우트 테이블을 보여줘",
-  "ai.followup.network2": "NAT Gateway 상태를 확인해줘",
-  "ai.followup.network3": "Transit Gateway 라우팅을 분석해줘",
-  "ai.followup.container1": "EKS 노드의 CPU/메모리 사용률을 확인해줘",
-  "ai.followup.container2": "ECS 서비스 상태를 보여줘",
-  "ai.followup.container3": "Istio 서비스 메시 현황을 알려줘",
-  "ai.followup.cost1": "서비스별 비용을 비교해줘",
-  "ai.followup.cost2": "전월 대비 비용 증가 원인을 분석해줘",
-  "ai.followup.cost3": "비용 최적화 방안을 추천해줘",
-  "ai.followup.monitoring1": "CloudWatch 로그 그룹 목록을 보여줘",
-  "ai.followup.monitoring2": "최근 CloudTrail 이벤트를 조회해줘",
-  "ai.followup.monitoring3": "EC2 메모리 사용량 추세를 보여줘",
-  "ai.followup.data1": "DynamoDB 테이블 상세를 확인해줘",
-  "ai.followup.data2": "RDS 스냅샷 목록을 보여줘",
-  "ai.followup.data3": "ElastiCache 모범사례를 알려줘",
-  "ai.followup.awsdata1": "Lambda 함수 목록과 런타임을 알려줘",
-  "ai.followup.awsdata2": "S3 버킷 중 공개 접근 가능한 것이 있는지 확인해줘",
-  "ai.followup.awsdata3": "전체 리소스 요약을 보여줘",
-  "ai.followup.iac1": "Terraform VPC 모듈을 검색해줘",
-  "ai.followup.iac2": "CDK로 Lambda 배포하는 방법을 알려줘",
-  "ai.followup.iac3": "CloudFormation 스택 상태를 확인해줘",
-  "ai.followup.code1": "AWS 비용 데이터를 차트로 시각화해줘",
-  "ai.followup.code2": "랜덤 숫자 통계를 계산해줘",
-  "ai.followup.code3": "JSON 데이터를 파싱하는 코드를 만들어줘",
-  "ai.followup.datasource1": "다른 시간 범위로 같은 메트릭 조회해줘",
-  "ai.followup.datasource2": "관련 로그도 함께 확인해줘",
-  "ai.followup.datasource3": "CloudWatch 알람과 비교 분석해줘",
-  "ai.followup.dsdiag1": "연결 문제 원인을 더 분석해줘",
-  "ai.followup.dsdiag2": "보안 그룹 규칙 확인해줘",
-  "ai.followup.dsdiag3": "NLB 타겟 헬스 상태 확인해줘",
-  "ai.followup.general1": "서울 리전에서 사용 가능한 서비스를 확인해줘",
-  "ai.followup.general2": "ECS와 EKS 차이점을 알려줘",
-  "ai.followup.general3": "서버리스 아키텍처를 추천해줘"
+  "topology3d.title": "3D 토폴로지",
+  "topology3d.subtitle": "VPC · 서브넷 · 리소스를 3D로 탐색"
 }

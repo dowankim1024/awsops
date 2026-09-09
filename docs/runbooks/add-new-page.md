@@ -82,7 +82,7 @@ npm run build
 ## 체크리스트 / Checklist
 - [ ] `information_schema.columns`로 컬럼명 확인 (Verified column names)
 - [ ] JSONB 컬럼 내용 확인 (Checked JSONB column structure if applicable)
-- [ ] fetch URL이 `/awsops/api/steampipe`를 사용 (fetch URL uses `/awsops/api/steampipe`)
+- [ ] fetch URL이 `/api/steampipe`를 사용 (fetch URL uses `/api/steampipe`, no basePath)
 - [ ] 컴포넌트 임포트가 default (Component imports are default, not named)
 - [ ] StatsCard color에 이름('cyan') 사용 — hex 아님 (Uses name not hex)
 - [ ] 리스트 쿼리에 SCP 차단 컬럼 없음 (No SCP-blocked columns in list query)

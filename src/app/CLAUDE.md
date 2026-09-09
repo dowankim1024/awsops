@@ -3,12 +3,10 @@
 ## 역할
 Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 라우트 세그먼트.
 
-## 페이지 (40개)
+## 페이지 (38개)
 
 ### Overview (5)
 - `page.tsx` — 대시보드 홈 (20 StatsCards, Cost 가용성 감지, 인벤토리 스냅샷, 캐시 워머 상태 바)
-- `ai/page.tsx` — AI 어시스턴트 (실시간 Bedrock 스트리밍, 멀티 라우트, 도구 사용 표시, 사용자별 대화 이력, 토큰 비용 표시)
-- `agentcore/page.tsx` — AgentCore 대시보드 (Runtime/Gateway/Tools 상태, 호출 통계, 대화 이력 검색, 캐시 상태)
 - `bedrock/page.tsx` — Bedrock 모니터링 (모델별 사용량, 토큰 비용, 프롬프트 캐싱, Account vs AWSops 비교)
 - `accounts/page.tsx` — 계정 관리 (추가/삭제/테스트, admin 전용 — adminEmails config)
 
@@ -60,19 +58,16 @@ Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 �
 - `security/page.tsx` — Public S3, Open SG, Unencrypted EBS, CVE
 - `compliance/page.tsx` — CIS v1.5~v4.0 벤치마크
 
-## API 라우트 (17개)
+## API 라우트 (15개)
 
 | API | 설명 |
 |-----|------|
-| `api/ai/route.ts` | AI 라우팅 (11 routes incl. eks-optimize, 멀티 라우트, SSE, 도구 추론, 토큰 추적) |
 | `api/steampipe/route.ts` | Steampipe 쿼리 + Cost 가용성 + 인벤토리 |
 | `api/auth/route.ts` | 로그아웃 — HttpOnly 쿠키 서버 사이드 삭제 |
 | `api/msk/route.ts` | MSK 브로커 노드 + CloudWatch 메트릭 |
 | `api/rds/route.ts` | RDS 인스턴스 CloudWatch 메트릭 |
 | `api/elasticache/route.ts` | ElastiCache 노드 CloudWatch 메트릭 |
 | `api/opensearch/route.ts` | OpenSearch 도메인 CloudWatch 메트릭 |
-| `api/agentcore/route.ts` | AgentCore Runtime/Gateway 상태 |
-| `api/code/route.ts` | 코드 인터프리터 |
 | `api/benchmark/route.ts` | CIS 컴플라이언스 벤치마크 |
 | `api/container-cost/route.ts` | ECS 컨테이너 비용 (CloudWatch Container Insights + Fargate 가격) |
 | `api/eks-container-cost/route.ts` | EKS 컨테이너 비용 (OpenCost API + Request 기반 폴백) |
@@ -96,12 +91,10 @@ Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 �
 ## Role
 Next.js 14 App Router pages and API routes. Each subdirectory is a route segment.
 
-## Pages (40)
+## Pages (38)
 
 ### Overview (5)
 - `page.tsx` — Dashboard home (20 StatsCards, Cost availability detection, inventory snapshot, cache warmer status)
-- `ai/page.tsx` — AI Assistant (real-time Bedrock streaming, multi-route, tool usage, per-user history, token cost)
-- `agentcore/page.tsx` — AgentCore dashboard (Runtime/Gateway/Tools status, call stats, history search, cache status)
 - `bedrock/page.tsx` — Bedrock Monitoring (per-model usage, token costs, prompt caching, Account vs AWSops comparison)
 - `accounts/page.tsx` — Account Management (add/remove/test, admin-only via adminEmails config)
 
@@ -153,19 +146,16 @@ Next.js 14 App Router pages and API routes. Each subdirectory is a route segment
 - `security/page.tsx` — Public S3, Open SGs, Unencrypted EBS, CVE
 - `compliance/page.tsx` — CIS v1.5~v4.0 benchmarks (431 controls)
 
-## API Routes (17)
+## API Routes (15)
 
 | API | Description |
 |-----|------------|
-| `api/ai/route.ts` | AI routing (11 routes incl. eks-optimize, multi-route, SSE, tool inference, token tracking) |
 | `api/steampipe/route.ts` | Steampipe queries + Cost availability + Inventory |
 | `api/auth/route.ts` | Logout — server-side HttpOnly cookie deletion |
 | `api/msk/route.ts` | MSK broker nodes + CloudWatch metrics |
 | `api/rds/route.ts` | RDS instance CloudWatch metrics |
 | `api/elasticache/route.ts` | ElastiCache node CloudWatch metrics |
 | `api/opensearch/route.ts` | OpenSearch domain CloudWatch metrics |
-| `api/agentcore/route.ts` | AgentCore Runtime/Gateway status |
-| `api/code/route.ts` | Code Interpreter |
 | `api/benchmark/route.ts` | CIS compliance benchmark |
 | `api/container-cost/route.ts` | ECS Container Cost (CloudWatch Container Insights + Fargate pricing) |
 | `api/eks-container-cost/route.ts` | EKS Container Cost (OpenCost API + request-based fallback) |

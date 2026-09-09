@@ -1,77 +1,49 @@
 # AWSops 인프라 CDK / AWSops Infrastructure CDK
 
-AWSops 대시보드 CloudFormation 인프라를 CDK로 재구성한 프로젝트입니다.
-(CDK project that recreates the AWSops Dashboard CloudFormation infrastructure.)
+EC2 한 대 + IAM 롤 + 보안 그룹. ALB, ACM, Route 53, Cognito는 없다.
+인스턴스는 기존 VPC의 프라이빗 서브넷에 두고 SSM 포트 포워딩으로만 접속한다 (`docs/decisions/011-ssm-only-deployment.md`).
 
-## 스택 / Stacks
+One EC2 instance + IAM role + security group. No ALB, ACM, Route 53, or Cognito.
+The instance lives in an existing private subnet and is reached only via SSM port forwarding.
 
-| Stack | Description |
-|-------|-------------|
-| `AwsopsStack` | VPC, ALB, EC2, CloudFront, SSM endpoints |
-| `AwsopsCognitoStack` | Cognito User Pool, Lambda@Edge auth (us-east-1) |
-| `AwsopsAgentCoreStack` | AgentCore placeholder (deploy via script) |
+## 리소스 / Resources
 
-## 사전 요구 사항 / Prerequisites
+| 리소스 | 값 |
+|---|---|
+| EC2 | `t4g.large` (arm64, 8GB), Amazon Linux 2023, gp3 60GB 암호화 |
+| IAM 롤 | `AmazonSSMManagedInstanceCore` + `ReadOnlyAccess` + Bedrock `InvokeModel*`/`Converse*` + S3 리포트 버킷 + (선택) 교차 계정 AssumeRole |
+| 보안 그룹 | 인바운드 없음, 아웃바운드 전체 (NAT 경유) |
 
-- Node.js 20+
-- AWS CDK CLI: `npm install -g aws-cdk`
-- AWS 자격 증명 설정 완료 (AWS credentials configured)
-- 해당 리전의 CloudFront 접두사 목록 ID (CloudFront prefix list ID for your region)
-
-## 빠른 시작 / Quick Start
+## 배포 / Deploy
 
 ```bash
-cd infra-cdk
-npm install
-
-# Bootstrap CDK (first time only)
-cdk bootstrap aws://ACCOUNT_ID/ap-northeast-2
-cdk bootstrap aws://ACCOUNT_ID/us-east-1  # for Lambda@Edge
-
-# Review changes
-cdk diff
-
-# Deploy all stacks
-cdk deploy --all \
-  --parameters AwsopsStack:VSCodePassword=YOUR_PASSWORD \
-  --parameters AwsopsStack:CloudFrontPrefixListId=pl-22a6434b \
-  --parameters AwsopsStack:InstanceType=t4g.2xlarge
+cd infra-cdk && npm install
+npx cdk bootstrap                     # 계정 최초 1회 / first time per account
+npx cdk deploy -c vpcId=vpc-xxxx -c subnetId=subnet-xxxx
+# 옵션 / options: -c instanceType=t4g.large -c volumeSizeGb=60 -c crossAccountRoleName=AWSopsReadOnlyRole
 ```
 
-## 파라미터 / Parameters
+또는 `bash scripts/00-deploy-infra.sh` (환경변수 `VPC_ID`, `SUBNET_ID`).
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `InstanceType` | `t4g.2xlarge` | EC2 instance type (ARM64 Graviton) |
-| `VSCodePassword` | (required) | code-server password (min 8 chars) |
-| `CloudFrontPrefixListId` | (required) | CloudFront prefix list for ALB SG |
+## 접속 / Access
 
-## 아키텍처 / Architecture
-
-```
-Internet -> CloudFront (HTTPS)
-              |-- /awsops*       -> ALB:3000 -> EC2:3000 (Dashboard)
-              |-- /awsops/_next  -> ALB:3000 (static, cached)
-              |-- /*             -> ALB:80   -> EC2:8888 (VSCode)
-
-VPC 10.254.0.0/16
-  Public Subnets:  ALB, NAT Gateway
-  Private Subnets: EC2, SSM VPC Endpoints
+```bash
+# 셸 / shell
+aws ssm start-session --target <INSTANCE_ID>
+# 대시보드 / dashboard → http://localhost:3000
+aws ssm start-session --target <INSTANCE_ID> \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters portNumber=3000,localPortNumber=3000
 ```
 
-## 배포 후 단계 / Post-Deploy Steps
+서브넷에서 SSM 엔드포인트(NAT 또는 VPC 엔드포인트)에 닿아야 한다. Bedrock 모델 접근은 콘솔에서 계정당 1회 활성화한다.
 
-CDK 배포 후, 아래 설정 스크립트를 순서대로 실행하세요:
-(After CDK deploy, continue with the setup scripts:)
-1. SSM으로 EC2 접속: `aws ssm start-session --target INSTANCE_ID` (SSM into EC2)
-2. `01-install-base.sh` 실행 — 기본 도구 설치 (Steampipe + Powerpipe)
-3. `02-setup-nextjs.sh` 실행 — Next.js 앱 설정 (Next.js app)
-4. `03-build-deploy.sh` 실행 — 빌드 및 실행 (build and start)
-5. `05-setup-cognito.sh` 실행 — Cognito 콜백 URL 업데이트 (update Cognito callback URLs)
-6. `06-setup-agentcore.sh` 실행 — AI 에이전트 설정 (AI agent)
+## 멀티 어카운트 (선택) / Multi-account (optional)
+
+대상 계정에 `cfn-target-account-role.yaml`을 배포하면 `sts:AssumeRole`로 조회할 수 있다. 기본 운용은 단일 계정이다.
 
 ## 정리 / Cleanup
 
 ```bash
-cdk destroy --all
+npx cdk destroy
 ```

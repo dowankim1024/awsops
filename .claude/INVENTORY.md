@@ -85,6 +85,7 @@
 - `code-review` → `.claude/skills/code-review/SKILL.md` (코드 리뷰)
 - `refactor` → `.claude/skills/refactor/SKILL.md` (리팩토링)
 - `release` → `.claude/skills/release/SKILL.md` (릴리스)
+- `sync-docs` → `.claude/skills/sync-docs/SKILL.md` (문서 동기화)
 
 ## 아키텍처 결정 기록 / Architecture Decisions
 - `001-steampipe-pg-pool.md` — ADR-001: Steampipe pg Pool 사용 결정 (Steampipe pg Pool over CLI)
@@ -99,14 +100,12 @@
 - `analyze-resources.md` — Prompt: AWS 리소스 분석 (Analyze AWS Resources)
 
 ## 스크립트 / Scripts
-- `00-deploy-infra.sh` — CloudFormation으로 EC2 인프라 배포 (Deploy EC2 Infrastructure via CloudFormation)
+- `00-deploy-infra.sh` — CDK로 EC2 + IAM 롤 + SG 배포 (Deploy EC2 + role + SG via CDK, SSM-only access)
 - `01-install-base.sh` — Steampipe + 플러그인 + Powerpipe 설치 (Steampipe + Plugins + Powerpipe Installation)
 - `02-setup-nextjs.sh` — Next.js + Steampipe 서비스 설정 (Next.js + Steampipe Service Setup)
 - `03-build-deploy.sh` — Next.js 프로덕션 빌드 및 배포 (Build & Deploy Next.js Production)
-- `04-setup-alb.sh` — 대시보드용 ALB 리스너 설정 (ALB Listener Setup for Dashboard)
-- `05-setup-cognito.sh` — Cognito 인증 설정 (Cognito Authentication Setup)
-- `06-setup-agentcore.sh` — AgentCore 런타임 + 게이트웨이 설정 (AgentCore Runtime + Gateway Setup)
 - `09-start-all.sh` — 전체 서비스 시작 (Start All Services)
 - `10-stop-all.sh` — 전체 서비스 중지 (Stop All Services)
 - `11-verify.sh` — 검증 및 상태 확인 (Verification & Health Check)
+- `13-setup-steampipe-systemd.sh` — Steampipe systemd 유닛 (Steampipe systemd unit)
 - `install-all.sh` — 전체 설치 (Full Installation)

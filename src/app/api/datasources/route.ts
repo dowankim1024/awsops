@@ -2,7 +2,7 @@
 // 외부 데이터소스 CRUD + 연결 테스트 + 쿼리 API
 // Supports: Prometheus, Loki, Tempo, ClickHouse
 import { NextRequest, NextResponse } from 'next/server';
-import { getConfig, saveConfig, getDatasources, getDatasourceById, getDatasourceAllowedNetworks } from '@/lib/app-config';
+import { getConfig, saveConfig, getDatasources, getDatasourceById, getDatasourceAllowedNetworks, isSingleUser } from '@/lib/app-config';
 import type { DatasourceConfig, DatasourceType } from '@/lib/app-config';
 import { queryDatasource, testConnection } from '@/lib/datasource-client';
 import { getUserFromRequest } from '@/lib/auth-utils';
@@ -115,6 +115,7 @@ function maskCredentials(ds: DatasourceConfig): DatasourceConfig {
 // If adminEmails is not configured, all authenticated users are treated as admin (fresh install)
 // adminEmails가 설정되지 않은 경우, 모든 인증된 사용자를 관리자로 취급 (초기 설치)
 function isAdminUser(req: NextRequest): boolean {
+  if (isSingleUser()) return true;
   const user = getUserFromRequest(req);
   const config = getConfig();
   if (!config.adminEmails || config.adminEmails.length === 0) return true;

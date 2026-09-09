@@ -35,8 +35,8 @@ All AWS data is queried through **Steampipe's embedded PostgreSQL** (port 9193),
 ### Architecture Layers
 1. **Frontend**: Next.js 14 App Router + Tailwind dark theme
 2. **Data**: Steampipe pg Pool → node-cache (5min TTL)
-3. **AI**: Bedrock AgentCore → 8 Gateways → 125 MCP tools
-4. **Auth**: Cognito + Lambda@Edge + CloudFront
+3. **AI**: direct Bedrock (topology chat, AI diagnosis)
+4. **Access**: SSM port forwarding only (no ALB, no auth — see ADR-011)
 
 ### Critical Rules
 - **Never use Steampipe CLI** for queries — use `runQuery()` / `batchQuery()` from `src/lib/steampipe.ts`

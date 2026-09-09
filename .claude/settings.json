@@ -1,6 +1,6 @@
 {
   "project": "awsops-dashboard",
-  "description": "AWS/K8s operations dashboard with Steampipe, Next.js, Bedrock AgentCore",
+  "description": "AWS operations dashboard with Steampipe, Next.js, Bedrock, and a 3D topology view",
   "defaultModel": "claude-sonnet-4-6",
   "contextFiles": [
     "CLAUDE.md",
@@ -29,8 +29,7 @@
     "code-review": ".claude/skills/code-review/SKILL.md",
     "refactor": ".claude/skills/refactor/SKILL.md",
     "release": ".claude/skills/release/SKILL.md",
-    "sync-docs": ".claude/skills/sync-docs/SKILL.md",
-    "sync-guides": ".claude/skills/sync-guides/SKILL.md"
+    "sync-docs": ".claude/skills/sync-docs/SKILL.md"
   },
   "hooks": {
     "SessionStart": [
@@ -71,18 +70,6 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/check-doc-sync.sh \"$TOOL_INPUT_PATH\" 2>/dev/null || true"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/accumulate-pending-guides.sh \"$TOOL_INPUT_PATH\" 2>/dev/null || true"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/check-guide-i18n-sync.sh \"$TOOL_INPUT_PATH\" 2>/dev/null || true"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/check-menu-guide-sync.sh \"$TOOL_INPUT_PATH\" 2>/dev/null || true"
           }
         ]
       }

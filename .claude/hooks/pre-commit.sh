@@ -3,10 +3,10 @@
 
 ERRORS=0
 
-# 1. Check no fetch URLs without /awsops prefix
-BAD_FETCH=$(grep -r "'/api/steampipe" src/app/ 2>/dev/null | grep -v "/awsops/api" | wc -l)
+# 1. Check no fetch URLs with a stale /awsops prefix (dashboard is served at /)
+BAD_FETCH=$(grep -r "'/awsops/api" src/app/ src/components/ 2>/dev/null | wc -l)
 if [ "$BAD_FETCH" -gt 0 ]; then
-  echo "ERROR: $BAD_FETCH files have fetch() without /awsops prefix"
+  echo "ERROR: $BAD_FETCH lines use a /awsops/api prefix — use /api/*"
   ERRORS=$((ERRORS+1))
 fi
 
@@ -17,9 +17,9 @@ if [ "$BAD_IMPORTS" -gt 0 ]; then
   ERRORS=$((ERRORS+1))
 fi
 
-# 3. Check basePath
-if ! grep -q "basePath.*awsops" next.config.mjs 2>/dev/null; then
-  echo "ERROR: basePath not set to /awsops in next.config.mjs"
+# 3. Check basePath is not set (no basePath in this fork)
+if grep -q "basePath" next.config.mjs 2>/dev/null; then
+  echo "ERROR: basePath must not be set in next.config.mjs"
   ERRORS=$((ERRORS+1))
 fi
 

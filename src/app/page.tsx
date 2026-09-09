@@ -8,7 +8,7 @@ import PieChartCard from '@/components/charts/PieChartCard';
 import BarChartCard from '@/components/charts/BarChartCard';
 import {
   Server, Database, DollarSign, Box, Shield, Network,
-  Bell, Container, ShieldCheck, AlertTriangle, Zap, Table,
+  Bell, ShieldCheck, AlertTriangle, Zap, Table,
   FileSearch, Globe, Package, HardDrive, Radio, Search, RefreshCw,
 } from 'lucide-react';
 import { queries as ec2Q } from '@/lib/queries/ec2';
@@ -220,10 +220,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Row 1: Compute & Containers (6) / 컴퓨팅 & 컨테이너 */}
+      {/* Row 1: Compute & Containers (5) / 컴퓨팅 & 컨테이너 */}
       <div>
         <h2 className="text-xs font-mono uppercase text-gray-400 tracking-wider mb-3">{t('dashboard.computeContainers')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <CardLink href="/ec2">
             <StatsCard label={t('dashboard.ec2Label')} value={totalEC2} icon={Server} color="cyan"
               change={t('dashboard.ec2Change', { running: Number(running?.value) || 0, stopped: totalEC2 - (Number(running?.value) || 0) })} />
@@ -231,10 +231,6 @@ export default function DashboardPage() {
           <CardLink href="/lambda">
             <StatsCard label={t('dashboard.lambdaLabel')} value={Number(lambda?.total_functions) || 0} icon={Zap} color="purple"
               change={t('dashboard.lambdaChange', { runtimes: Number(lambda?.unique_runtimes) || 0, longTimeout: Number(lambda?.long_timeout_functions) || 0 })} />
-          </CardLink>
-          <CardLink href="/agentcore">
-            <StatsCard label={t('dashboard.agentcoreLabel')} value="8 GW" icon={Container} color="orange"
-              change={t('dashboard.agentcoreChange')} />
           </CardLink>
           <CardLink href="/ecr">
             <StatsCard label={t('dashboard.ecrLabel')} value={Number(ecrSum?.total_repos) || 0} icon={Package} color="green"
