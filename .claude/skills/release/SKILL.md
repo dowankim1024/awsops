@@ -34,7 +34,7 @@ bash scripts/09-start-all.sh
 - 새 페이지 추가 (New pages added)
 - 새 쿼리 파일 (New query files)
 - API 변경 (API changes)
-- AgentCore/Gateway 업데이트 (AgentCore/Gateway updates)
+- 3D 토폴로지 모듈 변경 (3D topology module changes: filter, layout3d, adapters)
 - 버그 수정, 특히 쿼리 컬럼 수정 (Bug fixes, especially query column fixes)
 
 ### 4. 배포 / Deploy
@@ -42,8 +42,6 @@ bash scripts/09-start-all.sh
 # EC2에서: 재빌드 및 재시작 (On EC2: rebuild and restart)
 bash scripts/03-build-deploy.sh
 
-# CloudFront 캐시 무효화 (Invalidate CloudFront cache)
-aws cloudfront create-invalidation --distribution-id <ID> --paths "/awsops*"
 ```
 
 ### 5. 배포 후 검증 / Post-Deploy Verification

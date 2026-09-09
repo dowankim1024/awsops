@@ -5,7 +5,7 @@ import { homedir } from 'os';
 import { batchQuery, clearCache, checkCostAvailability, runCostQueriesPerAccount, resetPool } from '@/lib/steampipe';
 import { saveSnapshot, getHistory } from '@/lib/resource-inventory';
 import { saveCostSnapshot, getLatestCostSnapshot } from '@/lib/cost-snapshot';
-import { getConfig, saveConfig, validateAccountId, getAccounts, isMultiAccount } from '@/lib/app-config';
+import { getConfig, saveConfig, validateAccountId, getAccounts, isMultiAccount, isSingleUser } from '@/lib/app-config';
 import type { AccountConfig } from '@/lib/app-config';
 import { getCacheWarmerStatus, ensureCacheWarmerStarted } from '@/lib/cache-warmer';
 import { getUserFromRequest } from '@/lib/auth-utils';
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     const user = getUserFromRequest(request);
     const config = getConfig();
     const adminEmails = config.adminEmails || [];
-    const isAdmin = user.email !== 'anonymous' && (adminEmails.length === 0 || adminEmails.includes(user.email));
+    const isAdmin = isSingleUser() || (user.email !== 'anonymous' && (adminEmails.length === 0 || adminEmails.includes(user.email)));
     return NextResponse.json({ isAdmin, email: user.email });
   }
 
@@ -108,13 +108,13 @@ export async function PUT(request: NextRequest) {
     const adminActions = ['add-account', 'remove-account', 'init-host'];
     if (action && adminActions.includes(action)) {
       const user = getUserFromRequest(request);
-      if (user.email === 'anonymous') {
+      if (!isSingleUser() && user.email === 'anonymous') {
         return NextResponse.json({ error: 'Authentication required for account management.' }, { status: 401 });
       }
       // Admin email check — only adminEmails in config can manage accounts / adminEmails만 계정 관리 가능
       const config = getConfig();
       const adminEmails = config.adminEmails || [];
-      if (adminEmails.length > 0 && !adminEmails.includes(user.email)) {
+      if (!isSingleUser() && adminEmails.length > 0 && !adminEmails.includes(user.email)) {
         return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
       }
       // Rate limit: max 5 admin actions per minute per user / 사용자당 분당 5회 제한

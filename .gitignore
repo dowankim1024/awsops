@@ -57,7 +57,6 @@ infra-cdk/*.d.ts
 !infra-cdk/cdk.json
 
 # python
-agent/__pycache__/
 *.pyc
 
 # temp & backups / 임시 및 백업 파일

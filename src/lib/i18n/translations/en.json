@@ -45,12 +45,9 @@
   "common.back": "Back",
   "common.close": "Close",
   "common.lastChecked": "Last checked:",
-
   "sidebar.tagline": "Cloud Operations Dashboard",
   "sidebar.signOut": "Sign Out",
   "sidebar.dashboard": "Dashboard",
-  "sidebar.aiAssistant": "AI Assistant",
-  "sidebar.agentcore": "AgentCore",
   "sidebar.diagnosis": "AI Diagnosis",
   "sidebar.accounts": "Accounts",
   "sidebar.compute": "Compute",
@@ -68,6 +65,7 @@
   "sidebar.waf": "WAF",
   "sidebar.topology": "Topology Map",
   "sidebar.topologyView": "Topology View",
+  "sidebar.topology3d": "3D Topology",
   "sidebar.diagram": "Diagram",
   "sidebar.storageDb": "Storage & DB",
   "sidebar.ebs": "EBS",
@@ -93,7 +91,6 @@
   "sidebar.costOff": "OFF",
   "sidebar.datasources": "Datasources",
   "sidebar.datasourceExplore": "Explore",
-
   "datasources.title": "Datasources",
   "datasources.subtitle": "Manage external datasources (Prometheus, Loki, Tempo, ClickHouse)",
   "datasources.total": "Total",
@@ -165,7 +162,6 @@
   "datasources.generateQuery": "Generate",
   "datasources.aiGenerated": "AI generated — review and run",
   "datasources.naturalLanguage": "Natural Language",
-
   "dashboard.title": "AWSops Dashboard",
   "dashboard.computeContainers": "Compute & Containers",
   "dashboard.networkStorage": "Network & Storage",
@@ -174,8 +170,6 @@
   "dashboard.ec2Change": "{running} running · {stopped} stopped",
   "dashboard.lambdaLabel": "Lambda",
   "dashboard.lambdaChange": "{runtimes} runtimes · {longTimeout} long timeout",
-  "dashboard.agentcoreLabel": "AgentCore",
-  "dashboard.agentcoreChange": "125 tools · 19 Lambda · Multi-route",
   "dashboard.ecrLabel": "ECR",
   "dashboard.ecrChange": "{scan} scan · {immutable} immutable",
   "dashboard.eksLabel": "EKS",
@@ -246,7 +240,6 @@
   "dashboard.secondsAgo": "{count}s ago",
   "dashboard.minutesAgo": "{count}m ago",
   "dashboard.hoursAgo": "{count}h ago",
-
   "ec2.title": "EC2 Instances",
   "ec2.subtitle": "Elastic Compute Cloud instances across all regions",
   "ec2.instanceId": "Instance ID",
@@ -268,7 +261,6 @@
   "ec2.totalInstances": "Total Instances",
   "ec2.runningInstances": "Running",
   "ec2.stoppedInstances": "Stopped",
-
   "lambda.title": "Lambda Functions",
   "lambda.subtitle": "Serverless functions across all regions",
   "lambda.functionName": "Function Name",
@@ -285,7 +277,6 @@
   "lambda.longTimeout": "Long Timeout",
   "lambda.packageType": "Package Type",
   "lambda.architecture": "Architecture",
-
   "ecs.title": "ECS",
   "ecs.subtitle": "Elastic Container Service clusters, services, and tasks",
   "ecs.clusters": "Clusters",
@@ -304,7 +295,6 @@
   "ecs.cpu": "CPU",
   "ecs.containerInstances": "Container Instances",
   "ecs.noClusters": "No ECS clusters found",
-
   "ecr.title": "ECR Repositories",
   "ecr.subtitle": "Elastic Container Registry repositories and images",
   "ecr.repoName": "Repository",
@@ -317,7 +307,6 @@
   "ecr.noRepos": "No ECR repositories found",
   "ecr.totalRepos": "Total Repos",
   "ecr.totalImages": "Total Images",
-
   "k8s.title": "EKS Overview",
   "k8s.subtitle": "Kubernetes clusters, nodes, and workloads",
   "k8s.noAccess.title": "EKS cluster access required",
@@ -381,7 +370,6 @@
   "k8s.selector": "Selector",
   "k8s.strategy": "Strategy",
   "k8s.image": "Image",
-
   "vpc.title": "VPC / Network",
   "vpc.subtitle": "Virtual Private Cloud, subnets, and network components",
   "vpc.vpcs": "VPCs",
@@ -405,7 +393,6 @@
   "vpc.resourceMap": "Resource Map",
   "vpc.routeTables": "Route Tables",
   "vpc.endpoints": "Endpoints",
-
   "cloudfront.title": "CloudFront",
   "cloudfront.subtitle": "CloudFront CDN distributions",
   "cloudfront.distributionId": "Distribution ID",
@@ -419,7 +406,6 @@
   "cloudfront.noDistributions": "No CloudFront distributions found",
   "cloudfront.totalDistributions": "Total Distributions",
   "cloudfront.enabledDistributions": "Enabled",
-
   "waf.title": "WAF",
   "waf.subtitle": "Web Application Firewall ACLs and rules",
   "waf.webAcls": "Web ACLs",
@@ -430,7 +416,6 @@
   "waf.rules": "Rules",
   "waf.defaultAction": "Default Action",
   "waf.noWebAcls": "No WAF Web ACLs found",
-
   "topology.title": "Topology Map",
   "topologyView.title": "Topology View",
   "topologyView.subtitle": "Infrastructure diagram",
@@ -464,7 +449,6 @@
   "topology.zoomOut": "Zoom Out",
   "topology.fitView": "Fit View",
   "topology.resetLayout": "Reset Layout",
-
   "ebs.title": "EBS Volumes",
   "ebs.subtitle": "Elastic Block Store volumes and snapshots",
   "ebs.volumes": "Volumes",
@@ -482,7 +466,6 @@
   "ebs.totalSize": "Total Size",
   "ebs.attachedVolumes": "Attached",
   "ebs.unencryptedVolumes": "Unencrypted",
-
   "s3.title": "S3 Buckets",
   "s3.subtitle": "Simple Storage Service buckets",
   "s3.bucketName": "Bucket Name",
@@ -498,7 +481,6 @@
   "s3.storageBreakdown": "Storage Breakdown",
   "s3.objectCount": "Objects",
   "s3.bucketSize": "Bucket Size",
-
   "rds.title": "RDS Instances",
   "rds.subtitle": "Relational Database Service instances",
   "rds.dbIdentifier": "DB Identifier",
@@ -520,7 +502,6 @@
   "rds.readIops": "Read IOPS",
   "rds.writeIops": "Write IOPS",
   "rds.storageType": "Storage Type",
-
   "dynamodb.title": "DynamoDB Tables",
   "dynamodb.subtitle": "DynamoDB tables and indexes",
   "dynamodb.tableName": "Table Name",
@@ -536,7 +517,6 @@
   "dynamodb.totalTables": "Total Tables",
   "dynamodb.readCapacity": "Read Capacity",
   "dynamodb.writeCapacity": "Write Capacity",
-
   "elasticache.title": "ElastiCache",
   "elasticache.subtitle": "ElastiCache clusters (Valkey/Redis/Memcached)",
   "elasticache.clusterId": "Cluster ID",
@@ -555,7 +535,6 @@
   "elasticache.memoryUsage": "Memory Usage",
   "elasticache.connections": "Connections",
   "elasticache.cacheHitRate": "Cache Hit Rate",
-
   "opensearch.title": "OpenSearch",
   "opensearch.subtitle": "OpenSearch domains",
   "opensearch.domainName": "Domain Name",
@@ -572,7 +551,6 @@
   "opensearch.clusterStatus": "Cluster Status",
   "opensearch.searchRate": "Search Rate",
   "opensearch.indexingRate": "Indexing Rate",
-
   "msk.title": "MSK Clusters",
   "msk.subtitle": "Managed Streaming for Apache Kafka",
   "msk.clusterName": "Cluster Name",
@@ -589,7 +567,6 @@
   "msk.memoryUsage": "Memory Usage",
   "msk.networkIn": "Network In",
   "msk.networkOut": "Network Out",
-
   "monitoring.title": "Monitoring",
   "monitoring.subtitle": "System metrics — CPU, Memory, Network, Disk I/O",
   "monitoring.cpuUtilization": "CPU Utilization",
@@ -598,7 +575,6 @@
   "monitoring.diskIO": "Disk I/O",
   "monitoring.instanceMetrics": "Instance Metrics",
   "monitoring.noMetrics": "No metrics available",
-
   "bedrock.title": "Bedrock Usage",
   "bedrock.subtitle": "Amazon Bedrock model usage and token tracking",
   "bedrock.modelId": "Model ID",
@@ -618,7 +594,6 @@
   "bedrock.cacheHits": "Cache Hits",
   "bedrock.cacheMisses": "Cache Misses",
   "bedrock.tokenCosts": "Token Costs",
-
   "cloudwatch.title": "CloudWatch Alarms",
   "cloudwatch.subtitle": "CloudWatch alarms and metrics",
   "cloudwatch.alarmName": "Alarm Name",
@@ -634,7 +609,6 @@
   "cloudwatch.insufficientData": "Insufficient Data",
   "cloudwatch.comparisonOperator": "Comparison",
   "cloudwatch.evaluationPeriods": "Eval Periods",
-
   "cloudtrail.title": "CloudTrail",
   "cloudtrail.subtitle": "CloudTrail trails and events",
   "cloudtrail.trails": "Trails",
@@ -654,7 +628,6 @@
   "cloudtrail.activeTrails": "Active",
   "cloudtrail.multiRegionTrails": "Multi-Region",
   "cloudtrail.validatedTrails": "Validated",
-
   "cost.title": "Cost Explorer",
   "cost.subtitle": "AWS cost analysis and breakdown",
   "cost.serviceName": "Service",
@@ -671,7 +644,6 @@
   "cost.mom": "MoM Change",
   "cost.costUnavailable": "Cost Explorer is not available for this account",
   "cost.snapshotFallback": "Showing snapshot data (last available cost data)",
-
   "inventory.exportXlsx": "Download XLSX",
   "inventory.exporting": "Generating...",
   "inventory.exportingHint": "Building one sheet per resource type (takes a few seconds)",
@@ -684,7 +656,6 @@
   "inventory.noInventory": "No inventory data",
   "inventory.countTrend": "Count Trend",
   "inventory.costImpact": "Cost Impact Estimation",
-
   "containerCost.title": "ECS Container Cost",
   "containerCost.subtitle": "ECS Fargate container cost analysis (Container Insights + Fargate pricing)",
   "containerCost.clusterName": "Cluster",
@@ -699,7 +670,6 @@
   "containerCost.fargatePricing": "Fargate Pricing",
   "containerCost.perVCPU": "Per vCPU/hour",
   "containerCost.perGB": "Per GB/hour",
-
   "eksContainerCost.title": "EKS Container Cost",
   "eksContainerCost.subtitle": "EKS container cost analysis (OpenCost + Request-based fallback)",
   "eksContainerCost.namespace": "Namespace",
@@ -712,7 +682,6 @@
   "eksContainerCost.noData": "No EKS cost data",
   "eksContainerCost.openCostSource": "Data source: OpenCost",
   "eksContainerCost.requestSource": "Data source: Request-based estimation",
-
   "iam.title": "IAM",
   "iam.subtitle": "Identity and Access Management users, roles, and policies",
   "iam.users": "Users",
@@ -736,7 +705,6 @@
   "iam.path": "Path",
   "iam.createDate": "Created",
   "iam.attachedPolicies": "Attached Policies",
-
   "security.title": "Security",
   "security.subtitle": "Security findings — Public S3, Open SGs, Unencrypted EBS, CVE",
   "security.publicS3Buckets": "Public S3 Buckets",
@@ -754,7 +722,6 @@
   "security.volumeId": "Volume ID",
   "security.finding": "Finding",
   "security.severity": "Severity",
-
   "compliance.title": "CIS Compliance",
   "compliance.subtitle": "CIS Benchmark compliance assessment (v1.5 ~ v4.0)",
   "compliance.benchmark": "Benchmark",
@@ -774,63 +741,6 @@
   "compliance.skipped": "Skipped",
   "compliance.errored": "Error",
   "compliance.selectBenchmark": "Select Benchmark",
-
-  "ai.title": "AI Assistant",
-  "ai.subtitle": "Powered by Amazon Bedrock + AgentCore",
-  "ai.placeholder": "Ask about your AWS resources...",
-  "ai.send": "Send",
-  "ai.stop": "Stop",
-  "ai.thinking": "Thinking...",
-  "ai.newChat": "New Chat",
-  "ai.chatHistory": "Chat History",
-  "ai.toolUsed": "Tools Used",
-  "ai.routedTo": "Routed to",
-  "ai.tokenUsage": "Token Usage",
-  "ai.inputTokens": "Input",
-  "ai.outputTokens": "Output",
-  "ai.estimatedCost": "Estimated Cost",
-  "ai.noMessages": "No messages yet. Ask me anything about your AWS environment!",
-  "ai.multiRoute": "Multi-route",
-
-  "agentcore.title": "AgentCore",
-  "agentcore.subtitle": "Bedrock AgentCore Runtime, Gateways, and Tools",
-  "agentcore.runtime": "Runtime",
-  "agentcore.gateways": "Gateways",
-  "agentcore.tools": "Tools",
-  "agentcore.runtimeStatus": "Runtime Status",
-  "agentcore.gatewayStatus": "Gateway Status",
-  "agentcore.callStats": "Call Statistics",
-  "agentcore.totalCalls": "Total Calls",
-  "agentcore.avgResponseTime": "Avg Response Time",
-  "agentcore.gatewayName": "Gateway",
-  "agentcore.toolCount": "Tool Count",
-  "agentcore.calls": "Calls",
-  "agentcore.tokens": "Tokens",
-  "agentcore.conversationHistory": "Conversation History",
-  "agentcore.noHistory": "No conversation history",
-  "agentcore.searchHistory": "Search history...",
-  "agentcore.modelUsage": "Model Usage",
-  "agentcore.codeInterpreter": "Code Interpreter",
-  "agentcore.memory": "Memory",
-  "agentcore.architecture": "Architecture",
-  "agentcore.mcpTools": "MCP Tools by Gateway (125 total)",
-  "agentcore.successRate": "Success Rate",
-  "agentcore.multiRoute": "Multi-route",
-  "agentcore.steampipeSql": "Steampipe SQL",
-  "agentcore.usedTools": "Used Tools",
-  "agentcore.totalToolCalls": "total {count} calls",
-  "agentcore.successFail": "{success} success · {fail} failed",
-  "agentcore.avgOf": "{count} calls avg",
-  "agentcore.parallelGateway": "Parallel Gateway calls",
-  "agentcore.awsDataRoute": "aws-data route",
-  "agentcore.callsByRoute": "Calls by Route",
-  "agentcore.recentCalls": "Recent Calls (max 10)",
-  "agentcore.noCallHistory": "No call history yet",
-  "agentcore.searchBtn": "Search",
-  "agentcore.historyCount": "{count}",
-  "agentcore.cache": "AgentCore Cache",
-  "agentcore.originalFetch": "Original fetch",
-
   "ec2.subtitle2": "Elastic Compute Cloud",
   "ec2.searchPlaceholder": "Search (ID, Name, IP...)",
   "ec2.allStates": "All States",
@@ -864,7 +774,6 @@
   "ec2.networkInterfaces": "Network Interfaces",
   "ec2.rootDevice": "Root Device",
   "ec2.deleteOnTermination": "DeleteOnTermination",
-
   "lambda.subtitle2": "Serverless Compute",
   "lambda.longTimeoutDesc": "Functions with timeout > 300s",
   "lambda.runtimeDistribution": "Runtime Distribution",
@@ -880,7 +789,6 @@
   "lambda.lastUpdate": "Last Update",
   "lambda.layers": "Layers",
   "lambda.notInVpc": "Not in VPC",
-
   "ecs.subtitle2": "Elastic Container Service",
   "ecs.runningTasks": "Running Tasks",
   "ecs.pendingTasks": "Pending Tasks",
@@ -891,12 +799,10 @@
   "ecs.noSettings": "No settings",
   "ecs.noTags": "No tags",
   "ecs.strategy": "Strategy",
-
   "ecr.subtitle2": "Elastic Container Registry",
   "ecr.tagMutability": "Tag Mutability",
   "ecr.registryId": "Registry ID",
   "ecr.imageScanEnabled": "Image scanning enabled",
-
   "k8s.subtitle2": "Cluster health and resource summary",
   "k8s.clusterVpcFilter": "Cluster / VPC Filter",
   "k8s.clearAll": "Clear all",
@@ -930,7 +836,6 @@
   "k8s.node": "Node",
   "k8s.podIp": "Pod IP",
   "k8s.serviceAccount": "Service Account",
-
   "k8s.explorerAutoRefresh": "Auto 30s",
   "k8s.explorerAutoOff": "Auto Off",
   "k8s.explorerSearch": "Search...",
@@ -941,7 +846,6 @@
   "k8s.explorerPrev": "Prev",
   "k8s.explorerNext": "Next",
   "k8s.explorerLoadingResources": "Loading resources...",
-
   "vpc.subtitle2": "Virtual Private Cloud, Transit Gateway, Load Balancers",
   "vpc.sgs": "SGs",
   "vpc.nat": "NAT",
@@ -978,7 +882,6 @@
   "vpc.internetGateway": "Internet Gateway",
   "vpc.attachments": "Attachments",
   "vpc.noNatGws": "No NAT GWs",
-
   "cloudfront.subtitle2": "Content Delivery Network",
   "cloudfront.protocol": "Protocol",
   "cloudfront.distribution": "Distribution",
@@ -988,14 +891,12 @@
   "cloudfront.httpAllowed": "HTTP Allowed",
   "cloudfront.allHttps": "All HTTPS",
   "cloudfront.considerHttps": "Consider HTTPS only",
-
   "waf.subtitle2": "Web Application Firewall",
   "waf.capacity": "Capacity",
   "waf.priority": "Priority",
   "waf.action": "Action",
   "waf.noRules": "No rules",
   "waf.webAcl": "Web ACL",
-
   "topology.subtitle2": "AWS Infrastructure Relationship Map",
   "topology.infrastructure": "Infrastructure",
   "topology.kubernetes": "Kubernetes",
@@ -1004,7 +905,6 @@
   "topology.searchInfra": "Search EC2, subnet, VPC...",
   "topology.searchK8s": "Search pods, services...",
   "topology.noResources": "No resources found. Click refresh to load data.",
-
   "ebs.subtitle2": "Elastic Block Store",
   "ebs.searchVolumes": "Search volumes...",
   "ebs.searchSnapshots": "Search snapshots...",
@@ -1031,7 +931,6 @@
   "ebs.unattached": "Unattached",
   "ebs.actionRequired": "Action required",
   "ebs.allEncrypted": "All encrypted",
-
   "s3.subtitle2": "Simple Storage Service",
   "s3.allRegions": "All Regions",
   "s3.allAccess": "All Access",
@@ -1061,7 +960,6 @@
   "s3.iamRolesWithAccess": "IAM Roles with S3 Access",
   "s3.noRolesFound": "No roles with S3 access found",
   "s3.noTags": "No tags",
-
   "rds.subtitle2": "Relational Database Service",
   "rds.engines": "Engines",
   "rds.engineDistribution": "Engine Distribution",
@@ -1088,7 +986,6 @@
   "rds.netOut": "Net Out",
   "rds.freeStorage": "Free Storage",
   "rds.days": "days",
-
   "dynamodb.subtitle2": "NoSQL Database Service",
   "dynamodb.active": "Active",
   "dynamodb.totalItems": "Total Items",
@@ -1100,7 +997,6 @@
   "dynamodb.throughput": "Throughput",
   "dynamodb.settings": "Settings",
   "dynamodb.pointInTimeRecovery": "Point-in-Time Recovery",
-
   "elasticache.subtitle2": "Valkey · Redis · Memcached",
   "elasticache.replGroups": "Repl Groups",
   "elasticache.nodeTypes": "Node Types",
@@ -1136,7 +1032,6 @@
   "elasticache.memcachedEngine": "Memcached engine",
   "elasticache.notInUse": "Not in use",
   "elasticache.replicationGroupsLabel": "Replication groups",
-
   "opensearch.subtitle2": "Search & Analytics",
   "opensearch.searchPlaceholder": "Search domains...",
   "opensearch.processing": "Processing",
@@ -1192,7 +1087,6 @@
   "opensearch.searchLatency": "Search Latency",
   "opensearch.indexLatency": "Index Latency",
   "opensearch.jvmMemory": "JVM Memory",
-
   "msk.subtitle2": "Managed Streaming for Apache Kafka",
   "msk.totalBrokers": "Total Brokers",
   "msk.acrossAllClusters": "Across all clusters",
@@ -1232,7 +1126,6 @@
   "msk.cloudwatchLogs": "CloudWatch Logs",
   "msk.s3Logs": "S3 Logs",
   "msk.firehose": "Firehose",
-
   "monitoring.title2": "Performance Monitor",
   "monitoring.subtitle2": "CPU, Memory, Network, Disk I/O Metrics",
   "monitoring.avgCpu": "Avg CPU (EC2)",
@@ -1265,7 +1158,6 @@
   "monitoring.memoryPercent": "Memory %",
   "monitoring.k8sNodeResources": "K8s Node Resources",
   "monitoring.rdsMemory": "RDS Memory",
-
   "bedrock.title2": "Bedrock Monitoring",
   "bedrock.subtitle2": "Model Usage, Token Costs & Prompt Caching",
   "bedrock.totalCost": "Total Cost",
@@ -1284,7 +1176,6 @@
   "bedrock.pricing": "Pricing",
   "bedrock.notAvailable": "Bedrock monitoring not available",
   "bedrock.noModels": "No models available",
-
   "cloudwatch.subtitle2": "Monitoring & Alarms",
   "cloudwatch.alarmStateDistribution": "Alarm State Distribution",
   "cloudwatch.alarmsByNamespace": "Alarms by Namespace",
@@ -1299,7 +1190,6 @@
   "cloudwatch.insufficientDataActions": "Insufficient Data Actions",
   "cloudwatch.reason": "Reason",
   "cloudwatch.seconds": "seconds",
-
   "cloudtrail.subtitle2": "API Activity & Audit Logs",
   "cloudtrail.writeEvents": "Write Events",
   "cloudtrail.homeRegion": "Home Region",
@@ -1320,7 +1210,6 @@
   "cloudtrail.write": "Write",
   "cloudtrail.organization": "Organization",
   "cloudtrail.noEvents": "No events available",
-
   "cost.subtitle2": "AWS Billing & Cost Management",
   "cost.periodThisMonth": "This Month",
   "cost.periodLastMonth": "Last Month",
@@ -1342,7 +1231,6 @@
   "cost.viewResourceInventory": "View Resource Inventory",
   "cost.retryLive": "Retry Live",
   "cost.showingCachedData": "Showing cached data",
-
   "inventory.subtitle2": "Capacity tracking & trend analysis",
   "inventory.coreResources": "Core Resources",
   "inventory.otherResources": "Other Resources",
@@ -1358,7 +1246,6 @@
   "inventory.costImpact30d": "Cost Impact Estimation (30d growth)",
   "inventory.noHistory": "No inventory history yet",
   "inventory.snapshotInfo": "Snapshots are captured automatically when the Dashboard loads",
-
   "containerCost.subtitle2": "ECS Task cost analysis based on Fargate pricing and Container Insights",
   "containerCost.monthlyEstimate": "Monthly Estimate",
   "containerCost.runningTasks": "Running Tasks",
@@ -1380,7 +1267,6 @@
   "containerCost.calcFormula": "Calculation Formula",
   "containerCost.example": "Example",
   "containerCost.notes": "Notes",
-
   "eksContainerCost.subtitle2": "Pod cost estimation based on resource requests and EC2 node pricing",
   "eksContainerCost.podCostDaily": "Pod Cost (Daily)",
   "eksContainerCost.podCostMonthly": "Pod Cost (Monthly)",
@@ -1395,7 +1281,6 @@
   "eksContainerCost.totalPerDay": "Total/Day",
   "eksContainerCost.hourlyRate": "Hourly Rate",
   "eksContainerCost.costCalcBasis": "Cost Calculation Basis",
-
   "iam.subtitle2": "Identity & Access Management",
   "iam.customPolicies": "Custom Policies",
   "iam.mfaStatus": "MFA Status",
@@ -1410,7 +1295,6 @@
   "iam.never": "Never",
   "iam.mfaWarning": "{count} IAM user(s) without MFA",
   "iam.mfaAdvice": "MFA should be enabled for all users.",
-
   "security.subtitle2": "Security Posture & Vulnerabilities",
   "security.mfaIssues": "MFA Issues",
   "security.openSgs": "Open SGs",
@@ -1456,74 +1340,12 @@
   "security.noVolumes": "No volumes available",
   "security.noVulnerabilities": "No vulnerabilities available",
   "security.publicBucketsLabel": "Public Buckets",
-
   "compliance.subtitle2": "AWS CIS Benchmark Assessment",
   "compliance.mayTake2to5min": "This may take 2-5 minutes...",
   "compliance.sections": "Sections",
   "compliance.alarmsBySection": "Alarms by Section",
   "compliance.complianceStatus": "Compliance Status",
   "compliance.selectAndRun": "Select a benchmark and click \"Run Benchmark\" to start",
-
-  "ai.subtitle2": "Powered by Amazon Bedrock AgentCore",
-  "ai.welcomeTitle": "AWSops AI Assistant",
-  "ai.processing": "Processing...",
-  "ai.copied": "Copied",
-  "ai.tokens": "Tokens:",
-  "ai.in": "In",
-  "ai.out": "Out",
-  "ai.cost": "Cost",
-  "ai.queries": "queries",
-  "ai.avg": "avg",
-  "ai.conversationHistory": "Conversation History",
-  "ai.welcomeDesc1": "Ask about your AWS infrastructure.",
-  "ai.welcomeDesc2": "Amazon Bedrock AgentCore uses LLM and Tools to provide answers.",
-  "ai.suggestion1": "Show EC2 instance status",
-  "ai.suggestion2": "Analyze VPC network configuration",
-  "ai.suggestion3": "Check RDS database status",
-  "ai.suggestion4": "Check for security issues",
-  "ai.suggestion5": "Show current cost status",
-  "ai.suggestion6": "Show EKS cluster status",
-  "ai.suggestion7": "Summarize overall resource status",
-  "ai.copy": "Copy",
-  "ai.queried": "Queried:",
-  "ai.tools": "Tools:",
-  "ai.analyzing": "Analyzing question...",
-  "ai.noHistory": "No conversation history yet. Start by asking a question.",
-  "ai.historyCount": "{count} items",
-  "ai.followup.security1": "Show IAM user list and Access Key status",
-  "ai.followup.security2": "Check if there are users without MFA",
-  "ai.followup.security3": "Check for Security Groups with 0.0.0.0/0 inbound",
-  "ai.followup.network1": "Show VPC subnets and route tables",
-  "ai.followup.network2": "Check NAT Gateway status",
-  "ai.followup.network3": "Analyze Transit Gateway routing",
-  "ai.followup.container1": "Check EKS node CPU/memory usage",
-  "ai.followup.container2": "Show ECS service status",
-  "ai.followup.container3": "Show Istio service mesh status",
-  "ai.followup.cost1": "Compare costs by service",
-  "ai.followup.cost2": "Analyze cost increase vs last month",
-  "ai.followup.cost3": "Recommend cost optimization strategies",
-  "ai.followup.monitoring1": "Show CloudWatch log group list",
-  "ai.followup.monitoring2": "Query recent CloudTrail events",
-  "ai.followup.monitoring3": "Show EC2 memory usage trend",
-  "ai.followup.data1": "Check DynamoDB table details",
-  "ai.followup.data2": "Show RDS snapshot list",
-  "ai.followup.data3": "Show ElastiCache best practices",
-  "ai.followup.awsdata1": "Show Lambda functions and runtimes",
-  "ai.followup.awsdata2": "Check for publicly accessible S3 buckets",
-  "ai.followup.awsdata3": "Show overall resource summary",
-  "ai.followup.iac1": "Search Terraform VPC modules",
-  "ai.followup.iac2": "How to deploy Lambda with CDK",
-  "ai.followup.iac3": "Check CloudFormation stack status",
-  "ai.followup.code1": "Visualize AWS cost data in a chart",
-  "ai.followup.code2": "Calculate random number statistics",
-  "ai.followup.code3": "Create code to parse JSON data",
-  "ai.followup.datasource1": "Query the same metrics with a different time range",
-  "ai.followup.datasource2": "Also check related logs",
-  "ai.followup.datasource3": "Compare with CloudWatch alarms",
-  "ai.followup.dsdiag1": "Analyze the connection issue further",
-  "ai.followup.dsdiag2": "Check the security group rules",
-  "ai.followup.dsdiag3": "Check the NLB target health",
-  "ai.followup.general1": "Check available services in Seoul region",
-  "ai.followup.general2": "Explain the difference between ECS and EKS",
-  "ai.followup.general3": "Recommend a serverless architecture"
+  "topology3d.title": "3D Topology",
+  "topology3d.subtitle": "Explore VPCs, subnets, and resources in 3D"
 }

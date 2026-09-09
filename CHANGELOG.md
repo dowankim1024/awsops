@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (3D topology fork, Phase 0)
+
+- Slim the fork down for a single-account, SSM-only deployment: removed AgentCore (runtime, 8 gateways, 19 Lambda, `/ai`, `/agentcore`, code interpreter), Cognito/ALB auth, OpenCost/EKS access scripts, multi-account setup script, the Docusaurus guide site, and org-specific runbooks
+- CDK stack reduced to EC2 + IAM role + security group with `-c vpcId -c subnetId`; `scripts/00-deploy-infra.sh` is now non-interactive
+- Add `singleUser` / `AWSOPS_SINGLE_USER` to bypass `adminEmails` gating when no auth layer exists
+- Add `topology3d` config block and dependencies for the upcoming 3D topology view (three, @react-three/fiber v8, @react-three/drei v9, vitest)
+
 ### Added
 
 - Manage Steampipe via systemd unit `steampipe.service` (Restart=always, boot-time start) — `scripts/13-setup-steampipe-systemd.sh`; watchdog restarts via `sudo systemctl` and start/stop scripts are systemctl-aware

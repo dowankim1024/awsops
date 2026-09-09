@@ -22,7 +22,6 @@ import {
   FileSearch,
   GitBranch,
   Activity,
-  BrainCircuit,
   Globe,
   Shield,
   Package,
@@ -59,9 +58,7 @@ const navGroups: NavGroup[] = [
     titleKey: '',
     items: [
       { labelKey: 'sidebar.dashboard', href: '/', icon: LayoutDashboard },
-      { labelKey: 'sidebar.aiAssistant', href: '/ai', icon: BrainCircuit },
       { labelKey: 'sidebar.diagnosis', href: '/ai-diagnosis', icon: ClipboardCheck },
-      { labelKey: 'sidebar.agentcore', href: '/agentcore', icon: Activity },
       { labelKey: 'sidebar.accounts', href: '/accounts', icon: Layers },
     ],
   },

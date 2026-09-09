@@ -3,13 +3,13 @@ set -e
 ################################################################################
 #                                                                              #
 #   AWSops Dashboard - Full Installation                                       #
-#   EC2 + Steampipe + Next.js + Powerpipe + AI                                 #
+#   EC2 + Steampipe + Next.js + Powerpipe                                      #
 #                                                                              #
 #   Usage:                                                                     #
 #     bash scripts/install-all.sh                                              #
 #                                                                              #
 #   Runs: Step 1 -> Step 2 -> Step 3 -> Step 11 (verify)                       #
-#   Optional: Steps 4 (EKS), 5 (Cognito), 6 (AgentCore), 7 (OpenCost), 8 (CF)#
+#   Optional: Step 13 (Steampipe systemd unit)                                 #
 #                                                                              #
 ################################################################################
 
@@ -38,20 +38,8 @@ echo "    [2/4] Next.js + Steampipe Service          (02-setup-nextjs.sh)"
 echo "    [3/4] Production Build + Deploy            (03-build-deploy.sh)"
 echo "    [4/4] Verification                         (11-verify.sh)"
 echo ""
-echo "  선택 단계 (개별 실행) / Optional (run separately):"
-echo "    Step 4:  EKS 접근 설정              (04-setup-eks-access.sh)"
-echo "    Step 5:  Cognito 인증               (05-setup-cognito.sh)"
-echo "    Step 6:  AgentCore AI (일괄)        (06-setup-agentcore.sh)"
-echo "      Step 6a: Runtime                  (06a-setup-agentcore-runtime.sh)"
-echo "      Step 6b: 8 Gateways              (06b-setup-agentcore-gateway.sh)"
-echo "      Step 6c: 19 Lambda + 19 Targets  (06c-setup-agentcore-tools.sh)"
-echo "      Step 6d: Code Interpreter        (06d-setup-agentcore-interpreter.sh)"
-echo "      Step 6e: 설정 적용 + 리빌드       (06e-setup-agentcore-config.sh)"
-echo "      Step 6f: Memory Store            (06f-setup-agentcore-memory.sh)"
-echo "      Docker: 재빌드 + Runtime 업데이트  (6e 후 수동 실행)"
-echo "    Step 7:  OpenCost (EKS 비용)       (07-setup-opencost.sh)"
-echo "    Step 8:  (deprecated — ALB Cognito 인증으로 대체 / replaced by ALB auth in Step 5)"
-echo "    Step 12: Multi-Account 설정        (12-setup-multi-account.sh)"
+echo "  선택 단계 / Optional:"
+echo "    Step 13: Steampipe systemd 유닛     (13-setup-steampipe-systemd.sh)"
 echo ""
 echo "  운영 스크립트 / Operations:"
 echo "    bash scripts/09-start-all.sh       # 서비스 시작 / Start services"
@@ -96,7 +84,7 @@ else
     echo ""
     echo "  # Step 0: Deploy EC2 (from local machine)"
     echo "  export VSCODE_PASSWORD='YourPassword'"
-    echo "  export INSTANCE_TYPE='t4g.2xlarge'   # default (ARM64 Graviton)"
+    echo "  export VPC_ID=vpc-xxxx SUBNET_ID=subnet-xxxx   # private subnet with NAT egress"
     echo "  bash scripts/00-deploy-infra.sh"
     echo ""
     echo "  # Then SSM into the instance and run:"
@@ -111,7 +99,7 @@ echo -e "${GREEN}===============================================================
 echo -e "${GREEN}   Installation Complete${NC}"
 echo -e "${GREEN}=================================================================${NC}"
 echo ""
-echo "  Dashboard:  http://localhost:3000/awsops"
+echo "  Dashboard:  http://localhost:3000 (via SSM port forwarding from your laptop)"
 echo ""
 echo "  Services running on this EC2 instance:"
 echo "    - Steampipe (embedded PostgreSQL, port 9193)"
@@ -119,20 +107,7 @@ echo "    - Next.js   (production server, port 3000)"
 echo "    - Powerpipe (CIS benchmark CLI)"
 echo ""
 
-# Auto-detect Dashboard URL from CDK stack output (ALB + custom domain)
-DASHBOARD_URL=$(aws cloudformation describe-stacks \
-    --stack-name AwsopsStack --region "$REGION" \
-    --query "Stacks[0].Outputs[?OutputKey=='DashboardURL'].OutputValue | [0]" \
-    --output text 2>/dev/null || echo "")
-if [ -n "$DASHBOARD_URL" ] && [ "$DASHBOARD_URL" != "None" ]; then
-    echo -e "  Dashboard: ${GREEN}${DASHBOARD_URL}${NC}"
-    echo ""
-fi
-
 echo "  다음 단계 / Next steps:"
-echo "    bash scripts/04-setup-eks-access.sh              # EKS 접근 설정"
-echo "    bash scripts/05-setup-cognito.sh                 # Cognito 인증"
-echo "    bash scripts/06-setup-agentcore.sh               # AgentCore AI (6a→6b→6c→6d→6e→6f)"
-echo "    bash scripts/07-setup-opencost.sh                # Prometheus + OpenCost (EKS 비용)"
-echo "    bash scripts/12-setup-multi-account.sh           # 멀티 어카운트 설정"
+echo "    bash scripts/13-setup-steampipe-systemd.sh       # Steampipe systemd (Restart=always)"
+echo "    bash scripts/09-start-all.sh                     # 서비스 시작 + SSM 포트 포워딩 안내"
 echo ""

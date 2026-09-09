@@ -149,39 +149,6 @@ import Header from '@/components/layout/Header';
 
 ---
 
-### 8. CloudFront 타임아웃
-
-| 설정 | 기본값 | 권장값 |
-|------|--------|--------|
-| Origin Read Timeout | 30s | **60s** |
-| CloudTrail 쿼리 | 60s+ | 이벤트 탭 lazy-load |
-
-**CloudTrail 해결:** 페이지 로드 시 trail만 로드, events/writes 탭 클릭 시 별도 API 호출
-
----
-
-### 9. AgentCore Runtime
-
-| 이슈 | 해결 |
-|------|------|
-| Docker 이미지 아키텍처 | **arm64 필수** (`docker buildx --platform linux/arm64`) |
-| Gateway toolSchema 형식 | `inlinePayload`는 **배열** (OpenAPI가 아님) |
-| Lambda 파라미터 매핑 | Gateway가 `{toolName, input}` 형식으로 전달 → action 자동 매핑 |
-| microVM에서 localhost 접근 불가 | Steampipe 쿼리는 Lambda(VPC 내)를 통해 접근 |
-| SDK v3 response body | `response.transformToString()` 사용 (read()가 아님) |
-
----
-
-### 10. Cognito
-
-| 이슈 | 해결 |
-|------|------|
-| Domain에 'aws' 포함 불가 | `ops-dashboard-auth` 사용 |
-| Username = email 필수 | `username-attributes email` 설정 |
-| Lambda@Edge 리전 | **us-east-1 필수** |
-
----
-
 ## 빠른 진단 명령어 / Quick Diagnosis Commands
 
 ```bash

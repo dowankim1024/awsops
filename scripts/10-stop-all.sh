@@ -34,16 +34,7 @@ else
     echo "  Not running"
 fi
 
-# -- [2/3] Stop OpenCost port-forward ------------------------------------------
-echo ""
-echo -e "${CYAN}[2/3] Stopping OpenCost port-forward...${NC}"
-if pkill -f "kubectl port-forward.*opencost.*9003" 2>/dev/null; then
-    echo -e "  ${GREEN}Stopped${NC}"
-else
-    echo "  Not running"
-fi
-
-# -- [3/3] Stop Steampipe ------------------------------------------------------
+# -- [2/2] Stop Steampipe ------------------------------------------------------
 # Under systemd management a bare `steampipe service stop` is auto-undone by
 # Restart=always — systemctl stop is the only way to keep it down intentionally.
 echo ""
@@ -76,13 +67,6 @@ if steampipe service status 2>&1 | grep -q "running"; then
     echo -e "  ${RED}WARN${NC} Steampipe still running"
 else
     echo -e "  ${GREEN}OK${NC}  Steampipe stopped"
-fi
-
-# Verify OpenCost port-forward stopped
-if pgrep -f "kubectl port-forward.*opencost.*9003" &>/dev/null; then
-    echo -e "  ${RED}WARN${NC} OpenCost port-forward still running"
-else
-    echo -e "  ${GREEN}OK${NC}  OpenCost port-forward stopped"
 fi
 
 echo ""

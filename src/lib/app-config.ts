@@ -60,12 +60,20 @@ export interface DatasourceConfig {
   updatedAt: string;
 }
 
+// 3D topology view settings / 3D 토폴로지 뷰 설정
+export interface Topology3dConfig {
+  chatModelId?: string;        // Bedrock model for the filter chat / 필터 채팅용 Bedrock 모델 ID
+  clusterThreshold?: number;   // Same-kind nodes per subnet before collapsing into a stack (default 24) / 스택으로 접는 임계값
+  defaultSource?: 'live' | 'fixture' | 'generator';  // Initial data source / 초기 데이터 소스
+}
+
 export interface AppConfig {
   costEnabled: boolean;
-  agentRuntimeArn?: string;
-  codeInterpreterName?: string;
-  memoryId?: string;
-  memoryName?: string;
+  // Single-user deployment: no ALB/Cognito in front, EC2 has no inbound rule and is reached only
+  // via SSM port forwarding, so admin gating by email is skipped. Also settable via AWSOPS_SINGLE_USER=true.
+  // 단일 사용자 배포: ALB/Cognito 없이 SSM 포트 포워딩으로만 접속하므로(인바운드 없음) 이메일 기반 관리자 검사를 건너뛴다.
+  singleUser?: boolean;
+  topology3d?: Topology3dConfig;
   steampipePassword?: string;
   fargatePricing?: FargatePricing;
   opencostEndpoint?: string;   // OpenCost API endpoint (Phase 2) / OpenCost API 엔드포인트 (2단계)
@@ -82,7 +90,7 @@ export interface AppConfig {
   notificationEnabled?: boolean;      // Enable auto-notification on report completion / 리포트 완료 시 자동 알림 활성화
   cognitoDomain?: string;             // Cognito hosted UI domain (e.g. "ops-dashboard-123.auth.ap-northeast-2.amazoncognito.com")
   cognitoClientId?: string;           // Cognito app client ID — used to build the logout URL
-  appUrl?: string;                    // Public app URL, logout redirect target (e.g. "https://awsops.dev1.musinsa.io/")
+  appUrl?: string;                    // Public app URL, logout redirect target (e.g. "https://awsops.example.com/")
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -122,6 +130,12 @@ export function saveConfig(config: Partial<AppConfig>): void {
   writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2), 'utf-8');
   _configCache = merged as AppConfig;
   _configCacheTime = Date.now();
+}
+
+// Single-user mode: env var wins, then config.json / 단일 사용자 모드: 환경변수 우선, 그다음 config.json
+export function isSingleUser(): boolean {
+  if (process.env.AWSOPS_SINGLE_USER === 'true') return true;
+  return getConfig().singleUser === true;
 }
 
 // --- Multi-account utilities ---

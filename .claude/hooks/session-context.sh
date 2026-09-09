@@ -4,7 +4,8 @@
 
 cd "$(dirname "$0")/../.." 2>/dev/null || exit 0
 
-echo "# AWSops Dashboard v1.7.0"
+VERSION=$(python3 -c "import json;print(json.load(open('package.json'))['version'])" 2>/dev/null || echo "?")
+echo "# AWSops Dashboard v$VERSION (3D topology fork)"
 echo ""
 
 # Git branch and recent changes

@@ -1,6 +1,9 @@
 # ADR-009: ALB Cognito Auth Instead of CloudFront + Lambda@Edge / CloudFront 대신 ALB Cognito 인증
 
-## Status: Accepted / 상태: 승인됨
+## Status: Superseded by ADR-011 / 상태: ADR-011로 대체됨
+
+> Kept for history. This fork runs without an ALB or Cognito at all (SSM port forwarding only).
+> 이력 보존용. 이 포크는 ALB와 Cognito를 쓰지 않는다 (SSM 포트 포워딩 전용).
 
 ## Context / 컨텍스트
 
@@ -10,15 +13,15 @@ Lambda@Edge function (Python 3.12, us-east-1) that validated Cognito JWTs on the
 기존 아키텍처는 ALB 앞에 CloudFront를 두고, viewer request에서 Cognito JWT를 검증하는
 Lambda@Edge(Python 3.12, us-east-1)로 인증을 처리했다.
 
-When deploying to the musinsa `dev1` account (003399921004), `cdk deploy` failed:
+When deploying to the original org account, `cdk deploy` failed:
 
 ```
-User: arn:aws:sts::003399921004:assumed-role/cdk-hnb659fds-cfn-exec-role-.../AWSCloudFormation
+User: arn:aws:sts::<ACCOUNT_ID>:assumed-role/cdk-hnb659fds-cfn-exec-role-.../AWSCloudFormation
 is not authorized to perform: cloudfront:CreateDistribution
 with an explicit deny in a service control policy
 ```
 
-The organization's SCP (`p-j4rrv7bk`) denies CloudFront distribution creation. SCPs are evaluated
+The organization's SCP denies CloudFront distribution creation. SCPs are evaluated
 above account-level IAM, so this cannot be worked around with permissions — even AdministratorAccess
 is blocked. CloudFront is off the table in this account.
 
@@ -34,7 +37,7 @@ CloudFront를 제거하고 ALB에서 TLS를 종료한다. Lambda@Edge 대신 ALB
 `authenticate-cognito` 리스너 액션으로 인증한다.
 
 ```
-Route 53 (awsops.dev1.musinsa.io)
+Route 53 (awsops.example.com)
   └─ ALB :443  (ACM cert, ap-northeast-2 — regional, not us-east-1)
        ├─ authenticate-cognito  ← auth happens here
        ├─ default        → Dashboard  (EC2 :3000)

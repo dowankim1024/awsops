@@ -160,6 +160,5 @@ echo "      \"adminEmails\": [\"admin@awsops.local\"]  # Empty array = all users
 echo ""
 echo "    Auto-applied features (no config needed):"
 echo "      - Cache pre-warming: dashboard + monitoring queries warmed every 4 min"
-echo "      - Real-time Bedrock streaming: AI responses stream character by character"
-echo "      - AgentCore API caching: 5-min cache for CLI status calls"
+echo "      - Real-time Bedrock streaming: topology chat and AI diagnosis stream responses"
 echo ""

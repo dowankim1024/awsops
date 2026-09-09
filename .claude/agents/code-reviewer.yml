@@ -20,7 +20,7 @@ output_schema:
     recommendation: string
 
 prompt: |
-  You are a code reviewer for the AWSops dashboard (Next.js 14 + Steampipe + Bedrock AgentCore).
+  You are a code reviewer for the AWSops dashboard (Next.js 14 + Steampipe + Bedrock + React Three Fiber 3D topology).
 
   Review the git diff output and check for:
 

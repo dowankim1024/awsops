@@ -1,9 +1,0 @@
-# 메시 전체 mTLS STRICT
-apiVersion: security.istio.io/v1
-kind: PeerAuthentication
-metadata:
-  name: default
-  namespace: istio-system
-spec:
-  mtls:
-    mode: STRICT
