@@ -8,12 +8,8 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 import Header from '@/components/layout/Header';
 import { queries as relQ } from '@/lib/queries/relationships';
 import { useAccountContext } from '@/contexts/AccountContext';
-import {
-  buildFossflowModel,
-  listVpcs,
-  TopologyData,
-  TopologyOptions,
-} from '@/lib/fossflow/generator';
+import { buildFossflowModel, listVpcs, TopologyOptions } from '@/lib/fossflow/generator';
+import { toTopologyGraph, type LiveTopologyRows } from '@/lib/topology/adapters/live';
 import { applyPatch, PatchOp } from '@/lib/fossflow/patch';
 
 // FossFLOW touches `document` at module scope — client-only import.
@@ -92,7 +88,7 @@ function TopologyViewContent() {
     fetchData();
   }, [fetchData]);
 
-  const topology: TopologyData = useMemo(
+  const rows: LiveTopologyRows = useMemo(
     () => ({
       vpcSubnets: data.vpcSubnets?.rows || [],
       ec2: data.ec2?.rows || [],
@@ -116,15 +112,18 @@ function TopologyViewContent() {
     [data]
   );
 
-  const vpcs = useMemo(() => listVpcs(topology.vpcSubnets), [topology]);
+  // Rows become a TopologyGraph once; the generator never sees Steampipe columns.
+  // 행은 한 번만 TopologyGraph로 바뀌고, 생성기는 Steampipe 컬럼을 모른다.
+  const graph = useMemo(() => toTopologyGraph(rows), [rows]);
+  const vpcs = useMemo(() => listVpcs(graph), [graph]);
 
   // URL ?vpc= wins on first load; afterwards fall back to the first VPC found.
-  const activeVpc = vpc || vpcs[0]?.vpcId || '';
+  const activeVpc = vpc || vpcs[0]?.id || '';
 
   const model = useMemo(
     () =>
-      activeVpc ? buildFossflowModel(topology, activeVpc, { includeEmpty, ...layerOpts }) : null,
-    [topology, activeVpc, includeEmpty, layerOpts]
+      activeVpc ? buildFossflowModel(graph, activeVpc, { includeEmpty, ...layerOpts }) : null,
+    [graph, activeVpc, includeEmpty, layerOpts]
   );
 
   // Regeneration discards chat patches (the model was rebuilt from live data)
@@ -159,8 +158,8 @@ function TopologyViewContent() {
           model: stripped,
           context: {
             vpcId: activeVpc,
-            vpcName: vpcs.find((v) => v.vpcId === activeVpc)?.name,
-            vpcs,
+            vpcName: vpcs.find((v) => v.id === activeVpc)?.name,
+            vpcs: vpcs.map((v) => ({ vpcId: v.id, name: v.name, cidr: v.cidr })),
             options: { includeEmpty, ...layerOpts },
           },
           lang,
@@ -233,7 +232,7 @@ function TopologyViewContent() {
         >
           {vpcs.length === 0 && <option value="">{t('topologyView.selectVpc')}</option>}
           {vpcs.map((v) => (
-            <option key={v.vpcId} value={v.vpcId}>
+            <option key={v.id} value={v.id}>
               {v.name} ({v.cidr})
             </option>
           ))}
