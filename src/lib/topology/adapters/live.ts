@@ -5,6 +5,17 @@
 // and the 3D view consume the same graph.
 // Steampipe 행을 TopologyGraph로 바꾸는 유일한 지점. 컬럼명은 relationships.ts와 맞춘다.
 import {
+  withInferredEdges,
+  type BucketNotificationFact,
+  type DnsRecordFact,
+  type EndpointFact,
+  type EventSourceFact,
+  type InferInput,
+  type OriginFact,
+  type RoleGrantFact,
+  type SgRuleFact,
+} from '../infer';
+import {
   type EdgeKind,
   type TopologyEdge,
   type TopologyGraph,
@@ -36,6 +47,15 @@ export interface LiveTopologyRows {
   dynamodb?: Row[];
   cloudfront?: Row[];
   route53?: Row[];
+  // Configuration inference (ADR-014). All optional: without them the graph is
+  // exactly the pre-4.6 one, explicit relationships only.
+  // 설정 추론용. 없으면 명시 관계만 있는 이전 그래프와 같다.
+  sgRules?: Row[];
+  instanceProfiles?: Row[];
+  roles?: Row[]; // second pass, narrowed to the roles resources use
+  policies?: Row[]; // third pass, the managed policies those roles attach
+  eventSourceMappings?: Row[];
+  route53Records?: Row[];
 }
 
 export interface LiveAdapterOptions {
@@ -68,6 +88,98 @@ export function ipInCidr(ip: string, cidr: string): boolean {
 
 const shortService = (serviceName: string): string =>
   serviceName.replace(/^com\.amazonaws\.[a-z0-9-]+\./, '');
+
+// Security groups come back in three shapes across the AWS tables: a plain array
+// of ids (ALB, Lambda, MSK, OpenSearch), `[{GroupId}]` (EC2) and
+// `[{VpcSecurityGroupId}]` (RDS, ElastiCache). One reader for all of them.
+// 테이블마다 보안그룹 표현이 셋이라 한 곳에서 읽는다.
+export function securityGroupIds(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item === 'string') {
+      if (item) out.push(item);
+      continue;
+    }
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Row;
+    const id = str(r.GroupId || r.VpcSecurityGroupId || r.SecurityGroupId || r.groupId);
+    if (id) out.push(id);
+  }
+  return Array.from(new Set(out));
+}
+
+// `Statement` lives at a different depth in policy_std, inline_policies_std and
+// the raw documents, so we walk until we find statements rather than assuming a
+// shape. Anything unrecognised yields nothing instead of throwing.
+// 정책 문서마다 Statement 위치가 달라 찾을 때까지 훑는다. 모르는 모양이면 빈 배열.
+export function policyStatements(doc: unknown, depth = 0): Row[] {
+  if (!doc || depth > 4) return [];
+  if (Array.isArray(doc)) return doc.flatMap((d) => policyStatements(d, depth + 1));
+  if (typeof doc !== 'object') return [];
+  const r = doc as Row;
+  if (r.Statement !== undefined) {
+    return Array.isArray(r.Statement) ? (r.Statement as Row[]) : [r.Statement as Row];
+  }
+  if (r.PolicyDocument !== undefined) return policyStatements(r.PolicyDocument, depth + 1);
+  if (r.policyDocument !== undefined) return policyStatements(r.policyDocument, depth + 1);
+  // inline_policies as a { name: document } map
+  return Object.values(r).flatMap((v) => policyStatements(v, depth + 1));
+}
+
+const asList = (v: unknown): string[] => {
+  if (typeof v === 'string') return v ? [v] : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : [];
+};
+
+// Allow statements only, flattened to the actions and resources this module can
+// act on. Deny, conditions and resource policies are out of scope (ADR-014).
+// Allow 구문만, 액션·리소스를 펴서 돌려준다. Deny·조건·리소스 정책은 범위 밖이다.
+export function allowGrants(roleArn: string, doc: unknown): RoleGrantFact[] {
+  const out: RoleGrantFact[] = [];
+  for (const st of policyStatements(doc)) {
+    if (!st || typeof st !== 'object') continue;
+    if (String(st.Effect ?? '').toLowerCase() !== 'allow') continue;
+    const actions = asList(st.Action);
+    const resources = asList(st.Resource);
+    if (actions.length && resources.length) out.push({ roleArn, actions, resources });
+  }
+  return out;
+}
+
+// Role ARNs the resources in `rows` actually use — the IN list for the second
+// IAM pass. Instances reach a role through their instance profile.
+// 리소스가 실제로 쓰는 롤 ARN. IAM 2차 조회의 IN 목록이 된다.
+export function usedRoleArns(rows: LiveTopologyRows): string[] {
+  const roleByProfile = new Map<string, string[]>();
+  (rows.instanceProfiles || []).forEach((r) => {
+    const arn = str(r.arn);
+    if (!arn) return;
+    const roles = Array.isArray(r.roles)
+      ? (r.roles as Row[]).map((x) => str(typeof x === 'string' ? x : x?.Arn)).filter(Boolean)
+      : [];
+    if (roles.length) roleByProfile.set(arn, roles);
+  });
+  const out = new Set<string>();
+  rows.ec2.forEach((r) => {
+    (roleByProfile.get(str(r.iam_instance_profile_arn)) || []).forEach((a) => out.add(a));
+  });
+  (rows.lambdaVpc || []).forEach((r) => {
+    const role = str(r.role);
+    if (role) out.add(role);
+  });
+  return Array.from(out).sort();
+}
+
+// The managed policies those roles attach — the IN list for the third pass.
+// 그 롤들이 붙인 관리형 정책 ARN. 3차 조회의 IN 목록.
+export function attachedPolicyArns(roleRows: Row[]): string[] {
+  const out = new Set<string>();
+  roleRows.forEach((r) => {
+    asList(r.attached_policy_arns).forEach((a) => out.add(a));
+  });
+  return Array.from(out).sort();
+}
 
 export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions = {}): TopologyGraph {
   const generatedAt = (opts.now ?? new Date()).toISOString();
@@ -132,6 +244,27 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
     return undefined;
   };
 
+  // An instance names its profile, not its role; resolve the hop once up front.
+  // 인스턴스는 롤이 아니라 프로파일을 가리키므로 미리 한 번 풀어 둔다.
+  const roleByProfileArn = new Map<string, string>();
+  (rows.instanceProfiles || []).forEach((r) => {
+    const arn = str(r.arn);
+    const roles = Array.isArray(r.roles) ? (r.roles as Row[]) : [];
+    const first = roles.map((x) => str(typeof x === 'string' ? x : x?.Arn)).find(Boolean);
+    if (arn && first) roleByProfileArn.set(arn, first);
+  });
+  const roleOfProfile = (profileArn: string): string => roleByProfileArn.get(profileArn) || '';
+
+  // Route 53 keeps only the records that resolve to something on screen; the
+  // rest are reported as a count so a zone with 400 records stays one node.
+  // 화면에 있는 대상으로 풀리는 레코드만 쓰고, 나머지는 개수로만 남긴다.
+  const recordsByZone = new Map<string, number>();
+  (rows.route53Records || []).forEach((r) => {
+    const zone = str(r.zone_id);
+    if (zone) recordsByZone.set(zone, (recordsByZone.get(zone) ?? 0) + 1);
+  });
+  const recordCount = (zoneId: string): number => recordsByZone.get(zoneId) ?? 0;
+
   const nodes: TopologyNode[] = [];
   const nodeIds = new Set<string>();
   const push = (n: TopologyNode) => {
@@ -163,6 +296,8 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
         privateIp: str(r.private_ip_address) || null,
         publicIp: str(r.public_ip_address) || null,
         eksCluster: str(r.eks_cluster) || null,
+        securityGroups: securityGroupIds(r.security_groups),
+        roleArn: roleOfProfile(str(r.iam_instance_profile_arn)) || null,
       },
     });
   });
@@ -194,7 +329,7 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
         scheme: str(r.scheme) || null,
         dnsName: str(r.dns_name) || null,
         availabilityZones: r.availability_zones ?? null,
-        securityGroups: r.security_groups ?? null,
+        securityGroups: securityGroupIds(r.security_groups),
       },
     });
   });
@@ -246,6 +381,7 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
         engine: str(r.engine) || null,
         instanceClass: str(r.db_instance_class) || null,
         endpoint: str(r.endpoint_address) || null,
+        securityGroups: securityGroupIds(r.vpc_security_groups),
       },
     });
   });
@@ -258,7 +394,7 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       name,
       vpcId: vpcOrUndef(r.vpc_id),
       az: str(r.availability_zone) || undefined,
-      meta: { engine: str(r.engine) || null },
+      meta: { engine: str(r.engine) || null, securityGroups: securityGroupIds(r.security_groups) },
     });
   });
   const azsOfSubnets = (sids: string[]): string[] =>
@@ -273,7 +409,7 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       name,
       vpcId: vpcOfSubnets(subnetIds),
       state: str(r.state) || undefined,
-      meta: { subnetIds, azs: azsOfSubnets(subnetIds) },
+      meta: { subnetIds, azs: azsOfSubnets(subnetIds), securityGroups: securityGroupIds(r.security_groups) },
     });
   });
   (rows.opensearch || []).forEach((r) => {
@@ -285,7 +421,12 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       kind: 'opensearch',
       name,
       vpcId: vpcOfSubnets(subnetIds),
-      meta: { subnetIds, azs: azsOfSubnets(subnetIds), engineVersion: str(r.engine_version) || null },
+      meta: {
+        subnetIds,
+        azs: azsOfSubnets(subnetIds),
+        engineVersion: str(r.engine_version) || null,
+        securityGroups: securityGroupIds(r.security_groups),
+      },
     });
   });
 
@@ -302,7 +443,12 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       vpcId: vpcOrUndef(r.vpc_id) ?? vpcOfSubnets(subnetIds),
       subnetId: first,
       az: first ? azOf(first) : undefined,
-      meta: { runtime: str(r.runtime) || null, subnetIds },
+      meta: {
+        runtime: str(r.runtime) || null,
+        subnetIds,
+        securityGroups: securityGroupIds(r.vpc_security_group_ids),
+        roleArn: str(r.role) || null,
+      },
     });
   });
 
@@ -316,14 +462,28 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       kind: 'endpoint',
       name: shortService(serviceName) || id,
       vpcId: vpcOrUndef(r.vpc_id),
-      meta: { serviceName: serviceName || null, endpointType: str(r.vpc_endpoint_type) || null },
+      meta: {
+        serviceName: serviceName || null,
+        endpointType: str(r.vpc_endpoint_type) || null,
+        routeTableIds: strList(r.route_table_ids),
+        subnetIds: strList(r.subnet_ids),
+      },
     });
   });
 
   // ---- Account-global resources ----
   (rows.s3 || []).forEach((r) => {
     const name = str(r.name);
-    if (name) push({ id: `s3:${name}`, kind: 's3', name, meta: { region: str(r.region) || null } });
+    if (!name) return;
+    const region = str(r.region);
+    push({
+      id: `s3:${name}`,
+      kind: 's3',
+      name,
+      // The virtual-hosted domain a CloudFront origin would name.
+      // CloudFront 오리진이 가리킬 가상 호스팅 도메인.
+      meta: { region: region || null, domain: region ? `${name}.s3.${region}.amazonaws.com` : `${name}.s3.amazonaws.com` },
+    });
   });
   (rows.dynamodb || []).forEach((r) => {
     const name = str(r.name);
@@ -349,7 +509,7 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
       id: `route53:${raw}`,
       kind: 'route53',
       name: raw.replace(/\.$/, ''),
-      meta: { privateZone: Boolean(r.private_zone) },
+      meta: { privateZone: Boolean(r.private_zone), zoneId: str(r.id) || null, records: recordCount(str(r.id)) },
     });
   });
 
@@ -444,11 +604,156 @@ export function toTopologyGraph(rows: LiveTopologyRows, opts: LiveAdapterOptions
     });
   });
 
-  return {
+  const graph: TopologyGraph = {
     meta: { source: 'live', generatedAt, ...(accountId ? { accountId } : {}) },
     vpcs,
     subnets,
     nodes,
     edges,
+  };
+
+  // ---- configuration inference (ADR-014) ----
+  // Rows in, normalised facts out; inferEdges owns every rule. Parsing IAM here
+  // rather than server-side keeps the rules pure and unit-testable.
+  // 행을 정규화된 사실로 바꿔 넘긴다. 규칙은 inferEdges가 전부 갖는다.
+  const inferInput = buildInferInput(rows, nodes, roleByProfileArn);
+  if (!inferInput) return graph;
+
+  // `Resource: "*"` is a badge on the node, never a line: it would connect the
+  // instance to every bucket in the account.
+  // 와일드카드 리소스는 선이 아니라 노드 배지로만 남긴다.
+  const wildcardRoles = new Set(
+    (inferInput.roleGrants ?? [])
+      .filter((g) => g.resources.includes('*') || g.resources.some((r) => r.endsWith(':::*')))
+      .map((g) => g.roleArn)
+  );
+  nodes.forEach((n) => {
+    if (typeof n.meta.roleArn === 'string' && wildcardRoles.has(n.meta.roleArn)) n.meta.iamWildcard = true;
+  });
+
+  return withInferredEdges(graph, inferInput);
+}
+
+// Returns null when none of the inference queries ran, so a caller that only
+// fetched the original bag gets the pre-4.6 graph untouched.
+// 추론 쿼리를 하나도 받지 않았으면 null을 돌려 이전 그래프를 그대로 둔다.
+function buildInferInput(
+  rows: LiveTopologyRows,
+  nodes: TopologyNode[],
+  roleByProfileArn: Map<string, string>
+): InferInput | null {
+  const any =
+    rows.sgRules || rows.instanceProfiles || rows.roles || rows.policies || rows.eventSourceMappings || rows.route53Records;
+  if (!any) return null;
+
+  const securityGroupRules: SgRuleFact[] = (rows.sgRules || []).map((r) => ({
+    groupId: str(r.group_id),
+    isEgress: Boolean(r.is_egress),
+    referencedGroupId: str(r.referenced_group_id) || null,
+    cidrIpv4: str(r.cidr_ipv4) || null,
+    fromPort: typeof r.from_port === 'number' ? r.from_port : Number(r.from_port ?? NaN),
+    toPort: typeof r.to_port === 'number' ? r.to_port : Number(r.to_port ?? NaN),
+    ipProtocol: str(r.ip_protocol) || null,
+  }));
+
+  // Inline policies come with the role; managed ones arrive in the third pass and
+  // are attributed back to every role that attaches them.
+  // 인라인 정책은 롤과 함께 오고, 관리형 정책은 3차 조회로 와서 붙인 롤마다 귀속된다.
+  const roleGrants: RoleGrantFact[] = [];
+  const policyById = new Map<string, unknown>();
+  (rows.policies || []).forEach((r) => {
+    const arn = str(r.arn);
+    if (arn) policyById.set(arn, r.policy_std ?? r.policy);
+  });
+  (rows.roles || []).forEach((r) => {
+    const roleArn = str(r.arn);
+    if (!roleArn) return;
+    roleGrants.push(...allowGrants(roleArn, r.inline_policies_std ?? r.inline_policies));
+    (Array.isArray(r.attached_policy_arns) ? r.attached_policy_arns : []).forEach((a: unknown) => {
+      const doc = policyById.get(str(a));
+      if (doc) roleGrants.push(...allowGrants(roleArn, doc));
+    });
+  });
+  // A grant nobody holds is dropped early so inferEdges never walks it.
+  const heldRoles = new Set(
+    nodes.map((n) => (typeof n.meta.roleArn === 'string' ? n.meta.roleArn : '')).filter(Boolean)
+  );
+  roleByProfileArn.forEach((role) => heldRoles.add(role));
+
+  const endpoints: EndpointFact[] = nodes
+    .filter((n) => n.kind === 'endpoint')
+    .map((n) => ({
+      endpointId: n.id,
+      serviceName: str(n.meta.serviceName),
+      endpointType: str(n.meta.endpointType) || 'Interface',
+      routeTableIds: strList(n.meta.routeTableIds),
+      subnetIds: strList(n.meta.subnetIds),
+    }));
+
+  // Gateway endpoints reach a subnet through a route table, so the associations
+  // of the route-table rows are the join.
+  // Gateway 엔드포인트는 라우트 테이블을 통해 서브넷에 닿는다.
+  const routeTableSubnets: Record<string, string[]> = {};
+  rows.routeTables.forEach((rt) => {
+    const id = str(rt.route_table_id);
+    if (!id) return;
+    const subnetIds = ((rt.associations || []) as Row[])
+      .map((a) => str(a?.SubnetId))
+      .filter(Boolean);
+    if (subnetIds.length) routeTableSubnets[id] = subnetIds;
+  });
+
+  const eventSources: EventSourceFact[] = (rows.eventSourceMappings || []).map((r) => ({
+    sourceArn: str(r.arn),
+    functionArn: str(r.function_arn),
+    enabled: str(r.state) === 'Enabled',
+  }));
+
+  const bucketNotifications: BucketNotificationFact[] = [];
+  (rows.s3 || []).forEach((r) => {
+    const bucket = str(r.name);
+    const cfg = r.event_notification_configuration as Row | null;
+    const fns = Array.isArray(cfg?.LambdaFunctionConfigurations)
+      ? (cfg!.LambdaFunctionConfigurations as Row[]).map((c) => str(c?.LambdaFunctionArn)).filter(Boolean)
+      : [];
+    if (bucket && fns.length) bucketNotifications.push({ bucket, functionArns: fns });
+  });
+
+  const origins: OriginFact[] = [];
+  (rows.cloudfront || []).forEach((r) => {
+    const id = str(r.id);
+    const raw = r.origins;
+    const items: Row[] = Array.isArray(raw) ? raw : Array.isArray((raw as Row)?.Items) ? ((raw as Row).Items as Row[]) : [];
+    const domains = items.map((o) => str(o?.DomainName)).filter(Boolean);
+    if (id && domains.length) origins.push({ distributionId: id, domains });
+  });
+
+  // Zone id -> zone name, so a record can name the zone node it belongs to.
+  // 레코드가 어느 존 노드에 속하는지 이름으로 잇는다.
+  const zoneNameById = new Map<string, string>();
+  (rows.route53 || []).forEach((r) => {
+    const id = str(r.id);
+    const name = str(r.name);
+    if (id && name) zoneNameById.set(id, name);
+  });
+  const dnsRecords: DnsRecordFact[] = [];
+  (rows.route53Records || []).forEach((r) => {
+    const zoneName = zoneNameById.get(str(r.zone_id));
+    if (!zoneName) return;
+    const alias = str((r.alias_target as Row | null)?.DNSName);
+    const values = strList(r.records);
+    const targets = [alias, ...values].filter(Boolean);
+    if (targets.length) dnsRecords.push({ zoneName, type: str(r.type), targets });
+  });
+
+  return {
+    securityGroupRules,
+    roleGrants: roleGrants.filter((g) => heldRoles.has(g.roleArn)),
+    endpoints,
+    routeTableSubnets,
+    eventSources,
+    bucketNotifications,
+    origins,
+    dnsRecords,
   };
 }

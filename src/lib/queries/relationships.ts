@@ -10,6 +10,8 @@ export const queries = {
       i.subnet_id,
       i.private_ip_address,
       i.public_ip_address,
+      i.security_groups,
+      i.iam_instance_profile_arn,
       tags ->> 'Name' AS name,
       tags ->> 'aws:eks:cluster-name' AS eks_cluster
     FROM aws_ec2_instance i
@@ -99,7 +101,8 @@ export const queries = {
       class AS db_instance_class,
       vpc_id,
       availability_zone,
-      endpoint_address
+      endpoint_address,
+      vpc_security_groups
     FROM aws_rds_db_instance
   `,
 
@@ -132,6 +135,7 @@ export const queries = {
       c.cache_cluster_id,
       c.engine,
       c.preferred_availability_zone AS availability_zone,
+      c.security_groups,
       g.vpc_id
     FROM aws_elasticache_cluster c
     JOIN aws_elasticache_subnet_group g
@@ -143,7 +147,8 @@ export const queries = {
     SELECT
       cluster_name,
       state,
-      provisioned -> 'BrokerNodeGroupInfo' -> 'ClientSubnets' AS client_subnets
+      provisioned -> 'BrokerNodeGroupInfo' -> 'ClientSubnets' AS client_subnets,
+      provisioned -> 'BrokerNodeGroupInfo' -> 'SecurityGroups' AS security_groups
     FROM aws_msk_cluster
   `,
 
@@ -152,7 +157,8 @@ export const queries = {
     SELECT
       domain_name,
       engine_version,
-      vpc_options -> 'SubnetIds' AS subnet_ids
+      vpc_options -> 'SubnetIds' AS subnet_ids,
+      vpc_options -> 'SecurityGroupIds' AS security_groups
     FROM aws_opensearch_domain
   `,
 
@@ -162,7 +168,9 @@ export const queries = {
       name,
       runtime,
       vpc_id,
-      vpc_subnet_ids
+      vpc_subnet_ids,
+      vpc_security_group_ids,
+      role
     FROM aws_lambda_function
     WHERE vpc_id IS NOT NULL AND vpc_id != ''
   `,
@@ -173,22 +181,64 @@ export const queries = {
       vpc_endpoint_id,
       vpc_id,
       service_name,
-      vpc_endpoint_type
+      vpc_endpoint_type,
+      route_table_ids,
+      subnet_ids
     FROM aws_vpc_endpoint
   `,
 
   // Account-global resources for the external tray (default-off layers)
   s3Buckets: `
-    SELECT name, region FROM aws_s3_bucket
+    SELECT name, region, event_notification_configuration FROM aws_s3_bucket
   `,
   dynamodbTables: `
     SELECT name FROM aws_dynamodb_table
   `,
   cloudfrontDists: `
-    SELECT id, domain_name, aliases FROM aws_cloudfront_distribution
+    SELECT id, domain_name, aliases, origins FROM aws_cloudfront_distribution
   `,
   route53Zones: `
-    SELECT name, private_zone FROM aws_route53_zone
+    SELECT id, name, private_zone FROM aws_route53_zone
+  `,
+
+  // ---- configuration inference (ADR-014) ----
+  // Read-only Describe/List/Get, same as everything else here. No Flow Logs,
+  // no X-Ray, no CloudWatch: an inferred edge is a permitted path, not traffic.
+  // 설정 추론용. 전부 읽기 전용 조회이고 로그·트레이스는 쓰지 않는다.
+
+  // Ingress rules only; egress never opens a path into a resource
+  sgRules: `
+    SELECT
+      account_id,
+      group_id,
+      security_group_rule_id,
+      is_egress,
+      referenced_group_id,
+      cidr_ipv4::text AS cidr_ipv4,
+      from_port,
+      to_port,
+      ip_protocol
+    FROM aws_vpc_security_group_rule
+    WHERE is_egress = false
+  `,
+
+  // Instance profile -> role ARN, the hop between an instance and its policies
+  instanceProfiles: `
+    SELECT account_id, arn, roles FROM aws_iam_instance_profile
+  `,
+
+  // Event source (DynamoDB stream, MSK cluster) -> Lambda
+  eventSourceMappings: `
+    SELECT account_id, arn, function_arn, state
+    FROM aws_lambda_event_source_mapping
+  `,
+
+  // Alias / value records only; the adapter keeps the ones that resolve to an
+  // ALB dns name or a CloudFront domain and counts the rest
+  route53Records: `
+    SELECT account_id, zone_id, name, type, alias_target, records
+    FROM aws_route53_record
+    WHERE type IN ('A', 'AAAA', 'CNAME')
   `,
 
   // EKS nodes -> instances
@@ -219,4 +269,41 @@ export const queries = {
     FROM kubernetes_ingress
     ORDER BY namespace, name
   `,
+};
+
+// IAM is fetched in a second pass, narrowed to the roles that resources actually
+// use: reading every role in an account is one API call per role. `arn` is a key
+// column on both tables, so Steampipe pushes the IN list down to AWS instead of
+// listing everything and filtering afterwards.
+// IAM은 리소스가 실제로 쓰는 롤로 좁혀 2차 조회한다. 계정의 롤 전체를 읽지 않는다.
+const MAX_IAM_ARNS = 200;
+
+// ARNs come from AWS, but this string is concatenated into SQL, so anything with
+// a quote or a newline in it is dropped rather than escaped.
+// ARN은 SQL에 이어 붙으므로 따옴표·개행이 있으면 escape하지 않고 버린다.
+const arnList = (arns: readonly string[]): string =>
+  Array.from(new Set(arns))
+    .filter((a) => typeof a === 'string' && /^arn:[A-Za-z0-9:/_+=,.@-]+$/.test(a))
+    .slice(0, MAX_IAM_ARNS)
+    .map((a) => `'${a}'`)
+    .join(', ');
+
+export const iamRolesQuery = (roleArns: readonly string[]): string | null => {
+  const list = arnList(roleArns);
+  if (!list) return null;
+  return `
+    SELECT arn, name, inline_policies_std, attached_policy_arns
+    FROM aws_iam_role
+    WHERE arn IN (${list})
+  `;
+};
+
+export const iamPoliciesQuery = (policyArns: readonly string[]): string | null => {
+  const list = arnList(policyArns);
+  if (!list) return null;
+  return `
+    SELECT arn, policy_std
+    FROM aws_iam_policy
+    WHERE arn IN (${list})
+  `;
 };

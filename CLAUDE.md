@@ -1,7 +1,7 @@
 # AWSops 대시보드 — Claude 컨텍스트
 
 > `dowankim1024/awsops`. 업스트림 `hojun121/awsops`(원류 `whchoi98/awsops`)에서 포크해 **3D 토폴로지 뷰**를 얹는 프론트엔드 포트폴리오 프로젝트.
-> 대상 계정은 PLick(ap-northeast-2) 하나. 계획서: `docs/plans/2026-09-09-topology-3d-and-slimdown.md` · 전담 에이전트: `.claude/agents/awsops.md`
+> 대상 계정은 PLick(ap-northeast-2) 하나. 계획서: `docs/plans/2026-09-09-topology-3d-and-slimdown.md`, `docs/plans/2026-09-10-topology-inferred-flows.md` · 전담 에이전트: `.claude/agents/awsops.md`
 
 ## 프로젝트 개요
 Steampipe + Next.js 14로 AWS 리소스를 실시간 조회하는 운영 대시보드에, 수백~수천 노드를 3D로 그리고 체크박스·URL·자연어 채팅이 같은 필터를 조작하는 토폴로지 뷰를 추가한다.
@@ -35,6 +35,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - 채팅은 필터 패치만 만든다. 씬을 직접 건드리지 않는다. 프롬프트에는 스키마 + 현재 필터 + 그래프 요약만
 - 성능: 노드는 종류별 `InstancedMesh`, 엣지는 단일 `LineSegments`, 라벨 상한, `frameloop="demand"`, 레이아웃은 `useMemo`
 - 클러스터링 임계값 기본 24 (`config.topology3d.clusterThreshold`). 펼침 상태는 UI 상태, 필터 아님
+- **설정 추론 엣지**(ADR-014)는 `infer.ts`의 순수 함수 `inferEdges(input, graph)`에만 규칙이 있다. 입력은 Steampipe 행이 아니라 정규화된 사실이고, 라이브 어댑터와 생성기가 같은 형태를 만든다. `allows`·`permits`·`endpoint`·`triggers`·`origin` 5종은 **허용된 경로**이지 관측 트래픽이 아니며 점선으로 그린다. Flow Logs·X-Ray·CloudWatch는 쓰지 않는다
 - 생성기는 결정적이다. 같은 `(params, seed, opts.now)`는 같은 그래프. 픽스처는 `npm run fixtures:build`로 재생성하며 diff가 없어야 한다
 - 익명화(`anonymize.ts`)는 식별 정보(계정 ID·이름 태그·리소스 ID·IP·CIDR)만 바꾸고 AWS 어휘는 그대로 둔다. 이후에도 `validateGraph`가 빈 배열이어야 한다
 - 순수 함수(filter, layout3d, generator)는 vitest 테스트 필수 (`npm test`)
@@ -49,7 +50,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - `src/lib/queries/*.ts` — SQL 쿼리 파일 (`relationships.ts`가 토폴로지 원천)
 - `src/lib/app-config.ts` — `data/config.json` 로더. `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — ALB 헤더/쿠키 없으면 `anonymous`
-- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, 어댑터 3종(live/fixture/generator), `anonymize.ts`, `layout3d.ts`(순수 3D 레이아웃, ADR-012), `chat.ts`(채팅 요약·프롬프트·패치 검증·스트림 리듀서, ADR-013), `sse.ts`, `fixtures/`, vitest (ADR-010)
+- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, 어댑터 3종(live/fixture/generator), `anonymize.ts`, `layout3d.ts`(순수 3D 레이아웃, ADR-012), `chat.ts`(채팅 요약·프롬프트·패치 검증·스트림 리듀서, ADR-013), `infer.ts`(설정 추론 엣지 5종, ADR-014), `sse.ts`, `fixtures/`, vitest (ADR-010)
 - `src/components/topology3d/` — R3F 렌더러(`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML 패널(`SourcePanel` `FilterPanel` `Inspector` `ChatPanel`). 페이지는 `src/app/topology-3d/page.tsx`, 훅은 `src/hooks/useTopologySource.ts`·`useTopologyFilter.ts`(URL 동기화), 채팅 API는 `src/app/api/topology3d-chat/route.ts`
 - `src/lib/fossflow/generator.ts` — 기존 Topology View(FossFLOW) 모델 생성기. `TopologyGraph`를 입력으로 받음
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI 종합 진단 (Bedrock 직접 호출, DOCX/PDF)
@@ -85,7 +86,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 ## 작업 규칙
 - 브랜치 `feature/topology-3d`. Phase별 커밋. upstream PR 없음
 - 새 페이지: `information_schema` 확인 → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → 빌드 → `src/app/CLAUDE.md` 갱신
-- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 013, 다음 014)
+- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 014, 다음 015)
 - 훅: `.claude/hooks/secret-scan.sh`(Write/Edit 전), `pre-commit.sh`(Bash 전), `check-doc-sync.sh`(Write/Edit 후)
 
 ---
@@ -93,7 +94,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 # AWSops Dashboard — Claude Context (English)
 
 > `dowankim1024/awsops`, forked from `hojun121/awsops` (origin `whchoi98/awsops`). A frontend portfolio project that adds a **3D topology view**.
-> Single target account: PLick (ap-northeast-2). Plan: `docs/plans/2026-09-09-topology-3d-and-slimdown.md` · agent: `.claude/agents/awsops.md`
+> Single target account: PLick (ap-northeast-2). Plans: `docs/plans/2026-09-09-topology-3d-and-slimdown.md`, `docs/plans/2026-09-10-topology-inferred-flows.md` · agent: `.claude/agents/awsops.md`
 
 ## Overview
 Steampipe + Next.js 14 AWS operations dashboard, extended with a topology view that renders hundreds to thousands of nodes in 3D, where checkboxes, URL params, and natural-language chat all drive one shared filter.
@@ -127,6 +128,7 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - Chat only produces filter patches; it never touches the scene. Prompt carries schema + current filter + graph summary only
 - Performance: per-kind `InstancedMesh`, one `LineSegments` for edges, label cap, `frameloop="demand"`, layout in `useMemo`
 - Cluster threshold defaults to 24 (`config.topology3d.clusterThreshold`). Expanded state is UI state, not filter
+- **Inferred edges** (ADR-014) have their rules only in the pure `inferEdges(input, graph)` in `infer.ts`. Its input is normalised facts, not Steampipe rows, and the live adapter and the generator both produce that shape. The five kinds (`allows`, `permits`, `endpoint`, `triggers`, `origin`) are **permitted paths**, not observed traffic, and are drawn dashed. No Flow Logs, X-Ray or CloudWatch
 - The generator is deterministic: the same `(params, seed, opts.now)` gives the same graph. Fixtures are rebuilt with `npm run fixtures:build` and must produce no diff
 - `anonymize.ts` replaces identity only (account id, Name tags, resource ids, IPs, CIDRs) and leaves AWS vocabulary intact; `validateGraph` must still pass afterwards
 - Pure functions (filter, layout3d, generator) need vitest tests (`npm test`)
@@ -141,7 +143,7 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - `src/lib/queries/*.ts` — SQL query files (`relationships.ts` feeds the topology)
 - `src/lib/app-config.ts` — `data/config.json` loader: `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — falls back to `anonymous` without ALB header/cookie
-- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, three adapters (live/fixture/generator), `anonymize.ts`, `layout3d.ts` (pure 3D layout, ADR-012), `chat.ts` (chat summary / prompt / patch validation / stream reducer, ADR-013), `sse.ts`, `fixtures/`, vitest (ADR-010)
+- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, three adapters (live/fixture/generator), `anonymize.ts`, `layout3d.ts` (pure 3D layout, ADR-012), `chat.ts` (chat summary / prompt / patch validation / stream reducer, ADR-013), `infer.ts` (five configuration-inferred edge kinds, ADR-014), `sse.ts`, `fixtures/`, vitest (ADR-010)
 - `src/components/topology3d/` — R3F renderer (`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML panels (`SourcePanel` `FilterPanel` `Inspector` `ChatPanel`). Page: `src/app/topology-3d/page.tsx`; hooks `src/hooks/useTopologySource.ts` and `useTopologyFilter.ts` (URL sync); chat API `src/app/api/topology3d-chat/route.ts`
 - `src/lib/fossflow/generator.ts` — existing Topology View (FossFLOW) model generator, now fed a `TopologyGraph`
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI diagnosis (direct Bedrock, DOCX/PDF)
@@ -160,5 +162,5 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 ## Working Rules
 - Branch `feature/topology-3d`, one commit per Phase, no upstream PR
 - New page: check `information_schema` → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → build → update `src/app/CLAUDE.md`
-- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 013, next 014)
+- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 014, next 015)
 - Hooks: `.claude/hooks/secret-scan.sh` (pre Write/Edit), `pre-commit.sh` (pre Bash), `check-doc-sync.sh` (post Write/Edit)
