@@ -8,7 +8,7 @@ import {
   mergeFilter,
   resolveVpcId,
 } from '../filter';
-import { GLOBAL_KINDS, NODE_KINDS, type TopologyGraph, type TopologyNode } from '../types';
+import { EDGE_KINDS, GLOBAL_KINDS, NODE_KINDS, type TopologyGraph, type TopologyNode } from '../types';
 import { validateGraph } from '../validate';
 
 const node = (
@@ -73,6 +73,10 @@ describe('DEFAULT_FILTER', () => {
     NODE_KINDS.forEach((k) => expect(DEFAULT_FILTER.kinds[k]).toBe(!GLOBAL_KINDS.includes(k)));
     expect(DEFAULT_FILTER.vpcId).toBeNull();
     expect(DEFAULT_FILTER.azs).toBeNull();
+  });
+  it('shows every edge kind and keeps connected globals', () => {
+    EDGE_KINDS.forEach((k) => expect(DEFAULT_FILTER.edgeKinds[k]).toBe(true));
+    expect(DEFAULT_FILTER.showConnectedGlobals).toBe(true);
   });
   it('createDefaultFilter returns a fresh, mutable copy', () => {
     const a = createDefaultFilter();
@@ -234,6 +238,91 @@ describe('URL round trip', () => {
   it('round-trips every kind toggled', () => {
     const f = createDefaultFilter();
     NODE_KINDS.forEach((k) => (f.kinds[k] = !f.kinds[k]));
+    expect(filterFromSearchParams(filterToSearchParams(f))).toEqual(f);
+  });
+});
+
+// The base graph has no inferred edges; the flow rules get their own copy so the
+// exact-id assertions above stay readable.
+// 추론 엣지는 별도 그래프에서 다룬다.
+const derived: TopologyGraph = {
+  ...graph,
+  nodes: [...graph.nodes, node('s3:lonely', 's3', { name: 'lonely' })],
+  edges: [
+    ...graph.edges,
+    { id: 'e7', from: 'i-api', to: 's3:bucket', kind: 'permits', meta: { derived: 'iam' } },
+    { id: 'e8', from: 'i-web', to: 'rds:db', kind: 'allows', meta: { derived: 'sg', ports: ['3306'] } },
+  ],
+};
+
+describe('edge kinds', () => {
+  it('drops an edge whose kind is off but keeps its endpoints', () => {
+    const f = mergeFilter(createDefaultFilter(), { edgeKinds: { allows: false } });
+    const out = applyFilter(derived, f);
+    expect(out.edges.map((e) => e.id)).not.toContain('e8');
+    expect(out.nodes.map((n) => n.id)).toContain('rds:db');
+  });
+  it('mergeFilter ignores an unknown edge kind', () => {
+    const f = mergeFilter(createDefaultFilter(), { edgeKinds: { ghost: false } as never });
+    expect((f.edgeKinds as Record<string, boolean>).ghost).toBeUndefined();
+    EDGE_KINDS.forEach((k) => expect(f.edgeKinds[k]).toBe(true));
+  });
+});
+
+describe('showConnectedGlobals', () => {
+  it('brings back a hidden global kind that a visible edge reaches', () => {
+    const out = applyFilter(derived, createDefaultFilter());
+    expect(out.nodes.map((n) => n.id)).toContain('s3:bucket');
+    expect(out.edges.map((e) => e.id)).toContain('e7');
+  });
+  it('leaves an unconnected global out', () => {
+    const out = applyFilter(derived, createDefaultFilter());
+    expect(out.nodes.map((n) => n.id)).not.toContain('s3:lonely');
+    expect(out.nodes.map((n) => n.id)).not.toContain('route53:zone');
+  });
+  it('respects the edge-kind switch: hiding permits hides the bucket again', () => {
+    const out = applyFilter(derived, mergeFilter(createDefaultFilter(), { edgeKinds: { permits: false } }));
+    expect(out.nodes.map((n) => n.id)).not.toContain('s3:bucket');
+  });
+  it('is off when the toggle is off', () => {
+    const out = applyFilter(derived, mergeFilter(createDefaultFilter(), { showConnectedGlobals: false }));
+    expect(out.nodes.map((n) => n.id)).not.toContain('s3:bucket');
+    expect(out.edges.map((e) => e.id)).not.toContain('e7');
+  });
+  it('does not pull in a global that the query excludes', () => {
+    const out = applyFilter(derived, mergeFilter(createDefaultFilter(), { query: 'api' }));
+    expect(out.nodes.map((n) => n.id)).not.toContain('s3:bucket');
+  });
+  it('adds no second hop: a global reached only through another global stays out', () => {
+    const chained: TopologyGraph = {
+      ...derived,
+      edges: [...derived.edges, { id: 'e9', from: 's3:bucket', to: 's3:lonely', kind: 'triggers' }],
+    };
+    const out = applyFilter(chained, createDefaultFilter());
+    expect(out.nodes.map((n) => n.id)).toContain('s3:bucket');
+    expect(out.nodes.map((n) => n.id)).not.toContain('s3:lonely');
+  });
+});
+
+describe('URL round trip for the new fields', () => {
+  it('writes hideEdges and globals only when they differ from the default', () => {
+    const f = mergeFilter(createDefaultFilter(), {
+      edgeKinds: { allows: false, permits: false },
+      showConnectedGlobals: false,
+    });
+    const p = filterToSearchParams(f);
+    expect(p.get('hideEdges')).toBe('allows,permits');
+    expect(p.get('globals')).toBe('0');
+    expect(filterFromSearchParams(p)).toEqual(f);
+  });
+  it('ignores an unknown edge kind in the URL', () => {
+    const f = filterFromSearchParams(new URLSearchParams('hideEdges=allows,ghost'));
+    expect(f.edgeKinds.allows).toBe(false);
+    expect((f.edgeKinds as Record<string, boolean>).ghost).toBeUndefined();
+  });
+  it('round-trips every edge kind toggled', () => {
+    const f = createDefaultFilter();
+    EDGE_KINDS.forEach((k) => (f.edgeKinds[k] = false));
     expect(filterFromSearchParams(filterToSearchParams(f))).toEqual(f);
   });
 });

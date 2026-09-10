@@ -37,14 +37,36 @@ export type Tier = (typeof TIERS)[number];
 export const isTier = (v: unknown): v is Tier =>
   typeof v === 'string' && (TIERS as readonly string[]).includes(v);
 
+// Explicit relationships, recorded as such by an AWS API.
 // target: load balancer -> instance (target group membership)
 // route:  subnet -> gateway node (nat / igw / tgw) from its route table
 // attach: gateway node (igw / tgw attachment) -> VPC
 // egress: nat -> igw (the NAT's public subnet routes to the IGW)
-export const EDGE_KINDS = ['target', 'route', 'attach', 'egress'] as const;
+// AWS API가 관계로 기록해 둔 것들.
+export const EXPLICIT_EDGE_KINDS = ['target', 'route', 'attach', 'egress'] as const;
+
+// Inferred from configuration: a permitted path, never observed traffic.
+// allows:   a security group ingress rule opens A -> B
+// permits:  an IAM role attached to A allows a data action on bucket / table B
+// endpoint: a subnet reaches a service through a VPC endpoint
+// triggers: an event source (bucket, stream, cluster) invokes a Lambda
+// origin:   an edge service points at a target (Route 53 -> CloudFront -> ALB / S3)
+// 설정에서 추론한 "열려 있는 길". 실제 지나간 트래픽이 아니다. ADR-014.
+export const DERIVED_EDGE_KINDS = ['allows', 'permits', 'endpoint', 'triggers', 'origin'] as const;
+
+export const EDGE_KINDS = [...EXPLICIT_EDGE_KINDS, ...DERIVED_EDGE_KINDS] as const;
 export type EdgeKind = (typeof EDGE_KINDS)[number];
 export const isEdgeKind = (v: unknown): v is EdgeKind =>
   typeof v === 'string' && (EDGE_KINDS as readonly string[]).includes(v);
+export const isDerivedEdgeKind = (k: EdgeKind): boolean =>
+  (DERIVED_EDGE_KINDS as readonly string[]).includes(k);
+
+// Which configuration produced an inferred edge. Explicit edges have no `derived`.
+// 추론 엣지의 근거. 명시 관계에는 없다.
+export const DERIVED_SOURCES = ['sg', 'iam', 'endpoint', 'event', 'dns'] as const;
+export type DerivedSource = (typeof DERIVED_SOURCES)[number];
+export const isDerivedSource = (v: unknown): v is DerivedSource =>
+  typeof v === 'string' && (DERIVED_SOURCES as readonly string[]).includes(v);
 
 export type TopologySource = 'live' | 'fixture' | 'generator';
 
@@ -86,6 +108,15 @@ export interface TopologyNode {
   meta: Record<string, unknown>;
 }
 
+export interface TopologyEdgeMeta {
+  derived?: DerivedSource; // absent on explicit relationships / 명시 관계에는 없다
+  ports?: string[]; // '3306', '8000-8100', 'all' / 포트 표기
+  protocol?: string; // tcp / udp / all
+  actions?: string[]; // IAM actions behind a `permits` edge / permits의 IAM 액션
+  roleArn?: string;
+  disabled?: boolean; // event source mapping that is not Enabled / 비활성 이벤트 매핑
+}
+
 // Endpoints reference an element id: a node id, a subnet id, or a VPC id.
 // applyFilter drops an edge as soon as either endpoint leaves the graph.
 // 엣지 끝점은 노드·서브넷·VPC id 중 하나. 끝점이 사라지면 엣지도 사라진다.
@@ -95,6 +126,7 @@ export interface TopologyEdge {
   to: string;
   kind: EdgeKind;
   label?: string;
+  meta?: TopologyEdgeMeta;
 }
 
 export interface TopologyGraph {

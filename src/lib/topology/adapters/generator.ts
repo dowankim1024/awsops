@@ -4,6 +4,17 @@
 // without AWS credentials and as the source of the stress fixture.
 // 결정적 생성기. 같은 시드·파라미터는 항상 같은 그래프를 낸다. 자격증명 없이 규모 테스트에 쓴다.
 import {
+  type BucketNotificationFact,
+  type DnsRecordFact,
+  type EndpointFact,
+  type EventSourceFact,
+  type InferInput,
+  type OriginFact,
+  type RoleGrantFact,
+  type SgRuleFact,
+  inferEdges,
+} from '../infer';
+import {
   type NodeKind,
   type TopologyEdge,
   type TopologyGraph,
@@ -597,7 +608,12 @@ export function generateGraph(
   const suffix = rng.hex(6);
   for (let i = 0; i < extraCount('s3'); i += 1) {
     const name = `${ENVS[i % ENVS.length]}-${BUCKET_NOUNS[i % BUCKET_NOUNS.length]}-${suffix}-${pad2(i + 1)}`;
-    nodes.push({ id: `s3:${name}`, kind: 's3', name, meta: { region } });
+    nodes.push({
+      id: `s3:${name}`,
+      kind: 's3',
+      name,
+      meta: { region, domain: `${name}.s3.${region}.amazonaws.com` },
+    });
   }
   for (let i = 0; i < extraCount('dynamodb'); i += 1) {
     const name = `${ENVS[i % ENVS.length]}-${TABLE_NOUNS[i % TABLE_NOUNS.length]}-${pad2(i + 1)}`;
@@ -624,6 +640,28 @@ export function generateGraph(
     });
   }
 
+  // ---- inferred-flow configuration (Phase 4.6, ADR-014) ----
+  // Synthesised as the very same facts the live adapter derives from Steampipe
+  // rows, then run through the shared inferEdges rules — so a bug in a rule shows
+  // up in both sources and the generator can never drift from live semantics.
+  // Every rng call below comes AFTER the existing ones, so ids and names above
+  // are byte-identical to the pre-4.6 generator (fixture determinism).
+  // 라이브 어댑터가 만드는 것과 같은 사실을 합성해 같은 규칙에 통과시킨다. 새 난수 호출은 전부
+  // 기존 호출 뒤에 붙으므로 위쪽 ID·이름은 그대로다.
+  const infer = buildInferFacts({ p, rng, region, accountId, perVpc, nodes, subnets });
+  const inferred = inferEdges(infer, {
+    meta: { source: 'generator', accountId, generatedAt, seed: p.seed },
+    vpcs,
+    subnets,
+    nodes,
+    edges,
+  });
+  inferred.forEach((e) => {
+    if (edgeIds.has(e.id)) return;
+    edgeIds.add(e.id);
+    edges.push(e);
+  });
+
   return {
     meta: { source: 'generator', accountId, generatedAt, seed: p.seed },
     vpcs,
@@ -637,3 +675,279 @@ export const generateFromPreset = (
   name: keyof typeof PRESETS,
   opts: GeneratorOptions = {}
 ): TopologyGraph => generateGraph(PRESETS[name], opts);
+
+// ---- inferred-flow fact synthesis (ADR-014) ----
+
+// Security-group tiers of a synthetic VPC. One group per app role keeps the
+// SG-to-SG cross products the size a real account produces (a rule between two
+// groups permits every member pair) instead of "every instance talks to
+// everything".
+// VPC 하나의 보안그룹 계층. 앱 역할마다 그룹을 따로 두어 SG 간 규칙의 교차곱이 실제 계정 수준에
+// 머물게 한다.
+interface VpcSecurityGroups {
+  albSg: string; // internet-facing load balancers / 인터넷 향 LB
+  bastionSg: string; // public-subnet EC2 / 퍼블릭 서브넷 EC2
+  lbSg: string; // internal load balancers / 내부 LB
+  lambdaSg: string;
+  dataSg: string; // rds + elasticache
+  mskSg: string;
+  searchSg: string; // opensearch
+  roleSg: Map<string, string>; // app role -> sg / 앱 역할별 SG
+}
+
+// Roles that reach the data tier and sit behind the internal load balancer.
+// 데이터 계층에 닿고 내부 LB 뒤에 서는 역할.
+const DATA_CLIENT_ROLES = ['api', 'worker'] as const;
+const LB_CLIENT_ROLES = ['api'] as const;
+const PROFILE_SUBNET_SHARE = 0.4; // private subnets whose instances carry a role
+const LAMBDA_S3_TRIGGER_SHARE = 0.3;
+const LAMBDA_STREAM_TRIGGER_SHARE = 0.1;
+const LAMBDA_WILDCARD_SHARE = 0.15; // roles with Resource "*" — badge, never a line
+
+interface FactContext {
+  p: GeneratorParams;
+  rng: Rng;
+  region: string;
+  accountId: string;
+  perVpc: {
+    vpc: TopologyVpc;
+    env: string;
+    azs: string[];
+    publics: { subnet: TopologySubnet; index: number }[];
+    privates: { subnet: TopologySubnet; index: number }[];
+    igwId: string;
+    natByAz: Map<string, string>;
+    ec2ByRole: Map<string, string[]>;
+  }[];
+  nodes: TopologyNode[];
+  subnets: TopologySubnet[];
+}
+
+function buildInferFacts(ctx: FactContext): InferInput {
+  const { rng, region, accountId, perVpc, nodes } = ctx;
+  const securityGroupRules: SgRuleFact[] = [];
+  const roleGrants: RoleGrantFact[] = [];
+  const endpoints: EndpointFact[] = [];
+  const routeTableSubnets: Record<string, string[]> = {};
+  const eventSources: EventSourceFact[] = [];
+  const bucketNotifications: BucketNotificationFact[] = [];
+  const origins: OriginFact[] = [];
+  const dnsRecords: DnsRecordFact[] = [];
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const ofKind = (kind: NodeKind, vpcId?: string): TopologyNode[] =>
+    nodes.filter((n) => n.kind === kind && (vpcId === undefined || n.vpcId === vpcId));
+  const buckets = ofKind('s3');
+  const tables = ofKind('dynamodb');
+
+  const ingress = (
+    groupId: string,
+    source: { referencedGroupId?: string; cidrIpv4?: string },
+    port: number | 'all',
+    protocol = 'tcp'
+  ) => {
+    securityGroupRules.push({
+      groupId,
+      isEgress: false,
+      referencedGroupId: source.referencedGroupId ?? null,
+      cidrIpv4: source.cidrIpv4 ?? null,
+      fromPort: port === 'all' ? -1 : port,
+      toPort: port === 'all' ? -1 : port,
+      ipProtocol: port === 'all' ? '-1' : protocol,
+    });
+  };
+
+  perVpc.forEach((V) => {
+    const sgs: VpcSecurityGroups = {
+      albSg: rng.awsId('sg'),
+      bastionSg: rng.awsId('sg'),
+      lbSg: rng.awsId('sg'),
+      lambdaSg: rng.awsId('sg'),
+      dataSg: rng.awsId('sg'),
+      mskSg: rng.awsId('sg'),
+      searchSg: rng.awsId('sg'),
+      roleSg: new Map(APP_ROLES.map((r) => [r, rng.awsId('sg')])),
+    };
+
+    // -- membership: which resource sits behind which group --
+    ofKind('alb', V.vpc.id).forEach((n) => {
+      n.meta.securityGroups = [n.meta.scheme === 'internet-facing' ? sgs.albSg : sgs.lbSg];
+    });
+    ofKind('nlb', V.vpc.id).forEach((n) => {
+      n.meta.securityGroups = [sgs.lbSg];
+    });
+    (V.ec2ByRole.get('bastion') ?? []).forEach((id) => {
+      const n = byId.get(id);
+      if (n) n.meta.securityGroups = [sgs.bastionSg];
+    });
+    APP_ROLES.forEach((role) => {
+      const sg = sgs.roleSg.get(role)!;
+      (V.ec2ByRole.get(role) ?? []).forEach((id) => {
+        const n = byId.get(id);
+        if (n) n.meta.securityGroups = [sg];
+      });
+    });
+    [...ofKind('rds', V.vpc.id), ...ofKind('elasticache', V.vpc.id)].forEach((n) => {
+      n.meta.securityGroups = [sgs.dataSg];
+    });
+    ofKind('msk', V.vpc.id).forEach((n) => {
+      n.meta.securityGroups = [sgs.mskSg];
+    });
+    ofKind('opensearch', V.vpc.id).forEach((n) => {
+      n.meta.securityGroups = [sgs.searchSg];
+    });
+    const lambdas = ofKind('lambda', V.vpc.id);
+    lambdas.forEach((n) => {
+      n.meta.securityGroups = [sgs.lambdaSg];
+    });
+
+    // -- rules: the request path, tier by tier --
+    // internet → public tier
+    ingress(sgs.albSg, { cidrIpv4: '0.0.0.0/0' }, 443);
+    ingress(sgs.albSg, { cidrIpv4: '0.0.0.0/0' }, 80);
+    ingress(sgs.bastionSg, { cidrIpv4: '0.0.0.0/0' }, 22);
+    // public ALB → web tier → internal LB → app tier
+    const webSg = sgs.roleSg.get('web')!;
+    ingress(webSg, { referencedGroupId: sgs.albSg }, 80);
+    ingress(sgs.lbSg, { referencedGroupId: webSg }, 8080);
+    LB_CLIENT_ROLES.forEach((role) => ingress(sgs.roleSg.get(role)!, { referencedGroupId: sgs.lbSg }, 8080));
+    // app tier → data tier
+    DATA_CLIENT_ROLES.forEach((role) => {
+      ingress(sgs.dataSg, { referencedGroupId: sgs.roleSg.get(role)! }, 3306);
+      ingress(sgs.dataSg, { referencedGroupId: sgs.roleSg.get(role)! }, 6379);
+    });
+    // The API tier also publishes to Kafka and queries OpenSearch, which keeps
+    // those two reachable from the front door instead of stranded.
+    // API 계층도 Kafka·OpenSearch를 쓴다. 그래야 앞단에서 이어진다.
+    ['stream', 'api'].forEach((role) => ingress(sgs.mskSg, { referencedGroupId: sgs.roleSg.get(role)! }, 9092));
+    ['search', 'api'].forEach((role) => ingress(sgs.searchSg, { referencedGroupId: sgs.roleSg.get(role)! }, 443));
+    ingress(sgs.dataSg, { referencedGroupId: sgs.lambdaSg }, 3306);
+    // A CIDR rule that covers the whole VPC folds onto the VPC anchor…
+    ingress(sgs.dataSg, { cidrIpv4: V.vpc.cidr }, 5432);
+    // …while one covering a single subnet anchors on that subnet (admin SSH).
+    const bastionSubnet = V.publics[0]?.subnet;
+    if (bastionSubnet) {
+      LB_CLIENT_ROLES.forEach((role) =>
+        ingress(sgs.roleSg.get(role)!, { cidrIpv4: bastionSubnet.cidr }, 22)
+      );
+    }
+
+    // -- IAM: instance profiles on a share of the private subnets --
+    const roleOfEc2 = new Map<string, string>();
+    APP_ROLES.forEach((role) => (V.ec2ByRole.get(role) ?? []).forEach((id) => roleOfEc2.set(id, role)));
+    const grantsByRoleArn = new Map<string, RoleGrantFact>();
+    V.privates.forEach((plan) => {
+      if (!rng.chance(PROFILE_SUBNET_SHARE)) return;
+      const inside = nodes.filter((n) => n.kind === 'ec2' && n.subnetId === plan.subnet.id);
+      if (!inside.length) return;
+      const role = roleOfEc2.get(inside[0].id) ?? 'app';
+      const roleArn = `arn:aws:iam::${accountId}:role/${V.env}-${role}-instance-role`;
+      if (!grantsByRoleArn.has(roleArn)) {
+        const picked = buckets.length
+          ? Array.from(new Set([rng.pick(buckets).id, ...(rng.chance(0.5) ? [rng.pick(buckets).id] : [])]))
+          : [];
+        const table = tables.length && rng.chance(0.5) ? rng.pick(tables).id : null;
+        const grant: RoleGrantFact = {
+          roleArn,
+          actions: ['s3:GetObject', 's3:PutObject', ...(table ? ['dynamodb:GetItem', 'dynamodb:Query'] : [])],
+          resources: [
+            ...picked.map((id) => `arn:aws:s3:::${id.slice(3)}/*`),
+            ...(table ? [`arn:aws:dynamodb:${region}:${accountId}:table/${table.slice('dynamodb:'.length)}`] : []),
+          ],
+        };
+        grantsByRoleArn.set(roleArn, grant);
+        roleGrants.push(grant);
+      }
+      inside.forEach((n) => {
+        n.meta.roleArn = roleArn;
+      });
+    });
+
+    // -- Lambda roles and event sources --
+    lambdas.forEach((fn) => {
+      const fnName = fn.name;
+      const roleArn = `arn:aws:iam::${accountId}:role/${fnName}-role`;
+      fn.meta.roleArn = roleArn;
+      const functionArn = `arn:aws:lambda:${region}:${accountId}:function:${fnName}`;
+      if (rng.chance(LAMBDA_WILDCARD_SHARE)) {
+        // "Resource": "*" reaches every bucket in the account. That is a badge on
+        // the node, never a line (ADR-014); inferEdges drops the wildcard itself.
+        // 와일드카드는 노드 배지로만 남는다.
+        fn.meta.iamWildcard = true;
+        roleGrants.push({ roleArn, actions: ['s3:*'], resources: ['*'] });
+      } else if (buckets.length) {
+        roleGrants.push({
+          roleArn,
+          actions: ['s3:GetObject'],
+          resources: [`arn:aws:s3:::${rng.pick(buckets).id.slice(3)}/*`],
+        });
+      }
+      if (buckets.length && rng.chance(LAMBDA_S3_TRIGGER_SHARE)) {
+        const bucket = rng.pick(buckets).id.slice(3);
+        const hit = bucketNotifications.find((b) => b.bucket === bucket);
+        if (hit) hit.functionArns.push(functionArn);
+        else bucketNotifications.push({ bucket, functionArns: [functionArn] });
+      }
+      if (tables.length && rng.chance(LAMBDA_STREAM_TRIGGER_SHARE)) {
+        const table = rng.pick(tables).id.slice('dynamodb:'.length);
+        eventSources.push({
+          sourceArn: `arn:aws:dynamodb:${region}:${accountId}:table/${table}/stream/2026-01-01T00:00:00.000`,
+          functionArn,
+          enabled: rng.chance(0.85),
+        });
+      }
+    });
+
+    // -- VPC endpoints: gateway through route tables, interface through ENIs --
+    const privateSubnetIds = V.privates.map((plan) => plan.subnet.id);
+    const privateRtb = rng.awsId('rtb');
+    routeTableSubnets[privateRtb] = privateSubnetIds;
+    ofKind('endpoint', V.vpc.id).forEach((ep) => {
+      const gateway = ep.meta.endpointType === 'Gateway';
+      endpoints.push({
+        endpointId: ep.id,
+        serviceName: String(ep.meta.serviceName ?? ''),
+        endpointType: gateway ? 'Gateway' : 'Interface',
+        ...(gateway ? { routeTableIds: [privateRtb] } : { subnetIds: privateSubnetIds }),
+      });
+      if (gateway) ep.meta.routeTableIds = [privateRtb];
+      else ep.meta.subnetIds = privateSubnetIds;
+    });
+  });
+
+  // -- CloudFront origins and Route 53 records (account-global) --
+  const publicAlbs = nodes.filter((n) => n.kind === 'alb' && n.meta.scheme === 'internet-facing');
+  const staticBuckets = nodes.filter((n) => n.kind === 's3' && /assets|uploads/.test(n.name));
+  const dists = nodes.filter((n) => n.kind === 'cloudfront');
+  dists.forEach((d, i) => {
+    const domains: string[] = [];
+    const alb = publicAlbs[i % Math.max(1, publicAlbs.length)];
+    if (alb && typeof alb.meta.dnsName === 'string') domains.push(alb.meta.dnsName);
+    const bucket = staticBuckets[i % Math.max(1, staticBuckets.length)];
+    if (bucket && typeof bucket.meta.domain === 'string') domains.push(bucket.meta.domain);
+    if (domains.length) origins.push({ distributionId: String(d.meta.distributionId ?? ''), domains });
+  });
+
+  nodes
+    .filter((n) => n.kind === 'route53' && !n.meta.privateZone)
+    .forEach((zone, i) => {
+      const targets: string[] = [];
+      const dist = dists[i % Math.max(1, dists.length)];
+      if (dist && typeof dist.meta.domainName === 'string') targets.push(dist.meta.domainName);
+      const alb = publicAlbs[i % Math.max(1, publicAlbs.length)];
+      if (alb && typeof alb.meta.dnsName === 'string') targets.push(alb.meta.dnsName);
+      if (targets.length) dnsRecords.push({ zoneName: zone.name, type: 'A', targets });
+      zone.meta.records = targets.length;
+    });
+
+  return {
+    securityGroupRules,
+    roleGrants,
+    endpoints,
+    routeTableSubnets,
+    eventSources,
+    bucketNotifications,
+    origins,
+    dnsRecords,
+  };
+}

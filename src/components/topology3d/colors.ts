@@ -30,10 +30,17 @@ export const KIND_COLORS: Record<NodeKind, string> = {
 // to the selection, so the base has to start vivid.
 // 일부러 밝게. 튜브는 셰이더에서 음영이 깎이고 선택과 무관하면 더 어두워진다.
 export const EDGE_COLORS: Record<EdgeKind, string> = {
+  // Explicit relationships / 명시 관계
   target: '#ff6ec7',
   route: '#4de6ff',
   attach: '#ff7a7a',
   egress: '#d7dce6',
+  // Inferred from configuration — drawn dashed / 설정 추론, 점선으로 그린다
+  allows: '#7cf7b0',
+  permits: '#ffd166',
+  endpoint: '#7dd3fc',
+  triggers: '#c4a2ff',
+  origin: '#ff9f6e',
 };
 
 export const GROUND_COLORS = {

@@ -283,6 +283,11 @@ export function anonymizeGraph(g: TopologyGraph, opts: AnonymizeOptions = {}): T
       to,
       kind: e.kind,
       ...(e.label ? { label: a.text(e.label) } : {}),
+      // Inferred-edge meta survives, with identity scrubbed: the role ARN's
+      // account id and name tokens move, while ports, protocols and AWS action
+      // names (s3:GetObject) are vocabulary and stay put.
+      // 추론 엣지 meta는 남기되 롤 ARN만 치환한다. 포트·프로토콜·액션 이름은 AWS 어휘라 그대로.
+      ...(e.meta ? { meta: { ...e.meta, ...(e.meta.roleArn ? { roleArn: a.text(e.meta.roleArn) } : {}) } } : {}),
     };
   });
 
