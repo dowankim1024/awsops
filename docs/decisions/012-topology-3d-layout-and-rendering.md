@@ -19,7 +19,7 @@
 ## 결과
 
 - 필터 변경 = `applyFilter` → `computeLayout` → 인스턴스 행렬·색 갱신. 씬 그래프 재구성 없음
-- stress 프리셋(EC2 1,001) 첫 VPC: 개별 노드 55 + 스택 8, 드로우 콜 46, 삼각형 약 3,900, 레이아웃 1ms 미만 (`docs/perf/topology-3d/README.md`)
+- stress 프리셋(EC2 1,001) 첫 VPC: 개별 노드 55 + 스택 8, 드로우 콜 46, 삼각형 약 3,900, 레이아웃 1ms, 5초 벤치마크 평균 60fps·최저 56.5·p95 17.3ms (M5 Pro, Chrome 152; `docs/perf/topology-3d/README.md`)
 - 라벨이 드로우 콜의 절반 이상을 차지한다. 라벨 수를 늘리려면 `BatchedText`나 스프라이트 아틀라스로 가야 한다
 - 새 데이터 소스는 어댑터 하나만 추가하면 되고, 새 종류(NodeKind)는 `palette.ts`에 색·형태 한 줄씩이면 된다
 
@@ -45,6 +45,6 @@ Hundreds to thousands of nodes must render at 60fps in the browser, and a filter
 ## Consequences
 
 - A filter change is `applyFilter` → `computeLayout` → instance matrix / colour update; the scene graph is never rebuilt
-- Stress preset (1,001 EC2), first VPC: 55 individual nodes + 8 stacks, 46 draw calls, ~3,900 triangles, layout under 1ms (`docs/perf/topology-3d/README.md`)
+- Stress preset (1,001 EC2), first VPC: 55 individual nodes + 8 stacks, 46 draw calls, ~3,900 triangles, layout 1ms, 5s benchmark avg 60fps / min 56.5 / p95 17.3ms (M5 Pro, Chrome 152; `docs/perf/topology-3d/README.md`)
 - Labels are more than half of the draw calls; raising the label budget means `BatchedText` or a sprite atlas
 - A new data source is one adapter; a new `NodeKind` is one colour and one shape line in `palette.ts`

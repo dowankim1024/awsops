@@ -16,17 +16,19 @@
 | 레이아웃 시간 | 0.4 ~ 0.6 ms | `computeLayout`, M5 Pro Chrome 152 |
 | 레이아웃 (vitest, 전체 그래프) | < 100 ms 보장 | `layout3d.test.ts` |
 | 첫 렌더 | 생성 + 레이아웃 < 5 ms, 3D 청크 로드 후 즉시 | 청크(three + drei) 로드가 지배적 |
-| **평균 fps** | **미측정** | 아래 참고 |
+| **평균 fps (5초 벤치마크)** | **60.0** (최저 56.5, p95 17.3 ms, 301 프레임) | 회전 중 드로우 콜 46, 삼각형 3,924 |
 
-**fps 미측정 사유.** 이번 세션의 브라우저(앱 내 패널, Claude-in-Chrome 창)는 둘 다 `document.hidden === true` 상태라 `requestAnimationFrame`이 한 번도 오지 않았다. 벤치마크 결과가 `0 fps / 프레임 1개`로 나온 것은 렌더러가 느린 게 아니라 프레임이 없었던 것이며, HUD는 이 경우 "창이 보이지 않아 측정 불가"로 표시한다(`valid: false`). 앞에 보이는 Chrome 창에서 HUD의 **5초 벤치마크**를 눌러 아래 표를 채운다.
+**측정 방법.** 보이는 Chrome 창에서 HUD의 **5초 벤치마크**를 누른다(프레임루프를 `always`로 바꾸고 카메라를 자동 회전). 숨겨진 창은 `requestAnimationFrame`이 오지 않아 `0 fps / 프레임 1개`가 나오며, HUD는 이 경우 "창이 보이지 않아 측정 불가"로 표시한다(`valid: false`). 자동화 브라우저(앱 내 패널, Claude-in-Chrome)는 모두 hidden 상태라 사람이 직접 눌러야 한다.
 
 | 환경 | 프리셋 | 평균 fps | 최저 fps | p95 프레임 ms | 드로우 콜 | 측정일 |
 |---|---|---|---|---|---|---|
-| M 시리즈 Mac, Chrome (보이는 창) | stress | | | | | |
+| Apple M5 Pro, Chrome 152 | stress | 60.0 | 56.5 | 17.3 | 46 | 2026-09-10 |
 | M 시리즈 Mac, Chrome (보이는 창) | stress, 서브넷 전부 펼침 | | | | | |
 | M 시리즈 Mac, Chrome (보이는 창) | large | | | | | |
 
-측정 환경: Apple M5 Pro, Chrome 152, `ANGLE Metal`, DPR 1.5, 캔버스 3800×2385.
+측정 환경: Apple M5 Pro, Chrome 152, `ANGLE Metal`, DPR 1.5, 캔버스 3800×2385. 나머지 두 행은 미측정.
+
+**판정**: stress 프리셋 60fps, 드로우 콜 46(≤50), 레이아웃 1ms — Phase 3 완료 기준 충족.
 
 ## 읽는 법
 - **노드 a / b**: 개별로 그린 노드 / 필터 후 노드. 차이는 스택에 접힌 수
