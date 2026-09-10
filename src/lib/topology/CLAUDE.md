@@ -21,6 +21,8 @@ Generator ───── adapters/generator.ts ┘        (types.ts)        (fi
 - `fixtures/` — `plick-prod.json`(익명화, 2 VPC·24 서브넷·390 EC2), `stress-1000.json`(2 VPC·32 서브넷·1,001 EC2). `npm run fixtures:build`로 재생성 (`scripts/build-topology-fixtures.ts`)
 - `__tests__/` — vitest. `fixtures/live-rows.ts`(합성 행), `fixtures/fossflow-expected.json`(Phase 1 이전 생성기 산출물 스냅샷)
 - `layout3d.ts` — `computeLayout(graph, { clusterThreshold, expanded })` → `Layout3D`(VPC 바닥판, AZ 레인, 티어 띠, 서브넷 단, 노드·스택 좌표, 접힌 엣지, 라벨, 앵커, 바운드, 통계). 순수·결정적. ADR-012
+- `chat.ts` — 필터 채팅의 순수 부분: `summarizeGraph`, `buildSystemPrompt`, `SET_FILTER_TOOL`, `sanitizePatch`/`sanitizeFilter`/`sanitizeSummary`/`toConverseMessages`, `createConverseReducer`, `diffFilter`. ADR-013
+- `sse.ts` — SSE 인코더/디코더 (라우트와 ChatPanel 공용)
 
 ## 계약 요약
 - **노드 id**: AWS 리소스 id가 있으면 그대로(`i-…`, `nat-…`, `igw-…`, `tgw-attach-…`, `vpce-…`). 없으면 `${kind}:${name}` (`alb:prod-alb`, `rds:prod-db`, `lambda:fn`, `s3:bucket`)
@@ -57,6 +59,15 @@ Generator ───── adapters/generator.ts ┘        (types.ts)        (fi
 - `bounds.radius`는 0이 될 수 없다(빈 그래프도 1). 카메라 맞춤이 이 값을 쓴다
 - 치수 상수는 `LAYOUT` 하나에 모아 둔다. 바꾸면 `layout3d.test.ts`의 겹침·포함 테스트가 잡는다
 
+## 채팅 (`chat.ts`, `sse.ts`)
+- 채팅은 **필터 패치만** 만든다. 그래프는 모델에 가지 않고 `summarizeGraph(graph, filter)`(VPC 목록, 현재 VPC의 AZ·티어별 서브넷 수·종류별 노드 수)만 프롬프트에 들어간다. 프롬프트 크기는 노드 수와 무관하다
+- `SET_FILTER_TOOL`이 Bedrock `toolConfig`에 그대로 들어가는 JSON 스키마다. kind·tier 목록은 `types.ts` 상수에서 만들어 새 종류가 자동으로 포함된다
+- `sanitizePatch(raw, summary)`가 모델 출력을 검증한다. 모르는 kind·tier는 버리고 `rejected`에 남긴다. AZ는 요약 목록에 정확 일치 → 접미사 일치(`2a`, `a`, 유일할 때만), VPC는 id → 이름. 하나도 못 푼 AZ 목록은 적용하지 않는다(화면을 비우지 않기 위해). `sanitizeFilter`·`sanitizeSummary`·`toConverseMessages`는 클라이언트 입력을 같은 원칙으로 정규화한다(user 우선 교대, 빈 assistant 텍스트 대체, 최근 10턴)
+- `createConverseReducer()`는 ConverseStream 이벤트(구조적 타입, SDK import 없음)를 텍스트와 도구 호출로 접는다. 도구 입력 JSON은 델타를 이어 붙여 `contentBlockStop`에서 파싱한다
+- `diffFilter(before, after)`는 UI의 "무엇이 바뀌었나" 칩용. AZ 순서 차이는 변경이 아니다
+- `sse.ts`: `encodeSse(event, data)` / `createSseDecoder()`. 청크 경계·CRLF·주석·마지막 빈 줄 누락을 처리한다
+- 라우트(`src/app/api/topology3d-chat`)는 이 함수들을 Bedrock과 `ReadableStream`에 잇기만 한다. ADR-013
+
 ## 규칙
 - 이 디렉터리의 함수는 **순수**하다. `Date.now()`는 `opts.now`로 주입. 네트워크·fs 접근 금지
 - 새 소스는 어댑터 하나만 추가한다. 렌더러·필터 수정 금지
@@ -81,6 +92,8 @@ The **data contract** and **pure functions** shared by every source (Live / Fixt
 - `fixtures/` — `plick-prod.json` (anonymized; 2 VPC, 24 subnets, 390 EC2) and `stress-1000.json` (2 VPC, 32 subnets, 1,001 EC2). Rebuild with `npm run fixtures:build` (`scripts/build-topology-fixtures.ts`)
 - `__tests__/` — vitest. `fixtures/live-rows.ts` (synthetic rows), `fixtures/fossflow-expected.json` (snapshot from the pre-Phase-1 generator)
 - `layout3d.ts` — `computeLayout(graph, { clusterThreshold, expanded })` → `Layout3D` (VPC plates, AZ lanes, tier bands, subnet platforms, node / stack positions, folded edges, labels, anchors, bounds, stats). Pure and deterministic. ADR-012
+- `chat.ts` — pure side of the filter chat: `summarizeGraph`, `buildSystemPrompt`, `SET_FILTER_TOOL`, `sanitizePatch`/`sanitizeFilter`/`sanitizeSummary`/`toConverseMessages`, `createConverseReducer`, `diffFilter`. ADR-013
+- `sse.ts` — SSE encoder / decoder shared by the route and ChatPanel
 
 ## Contract summary
 - **Node id**: the AWS resource id when one exists (`i-…`, `nat-…`, `igw-…`, `tgw-attach-…`, `vpce-…`), else `${kind}:${name}` (`alb:prod-alb`, `rds:prod-db`, `lambda:fn`, `s3:bucket`)
@@ -116,6 +129,15 @@ The **data contract** and **pure functions** shared by every source (Live / Fixt
 - An edge is two segments `from → mid → to`; `mid` is lifted in proportion to distance (0.6–4)
 - `bounds.radius` is never 0 (an empty graph gives 1); camera fitting relies on it
 - All dimensions live in the single `LAYOUT` constant; the overlap / containment tests in `layout3d.test.ts` catch a bad change
+
+## Chat (`chat.ts`, `sse.ts`)
+- Chat produces **filter patches only**. The graph never reaches the model; the prompt carries `summarizeGraph(graph, filter)` (VPC list, and for the current VPC its AZs, subnet count per tier, node count per kind). Prompt size is independent of node count
+- `SET_FILTER_TOOL` is the JSON schema passed straight into Bedrock `toolConfig`. Kind and tier lists are built from the `types.ts` constants, so a new kind is included automatically
+- `sanitizePatch(raw, summary)` validates model output: unknown kinds/tiers are dropped into `rejected`; AZs resolve against the summary by exact then suffix match (`2a`, `a`, only when unique); VPCs by id then name. An AZ list that resolves to nothing is not applied (never blank the scene). `sanitizeFilter`, `sanitizeSummary` and `toConverseMessages` normalise client input on the same principle (user-first alternation, empty assistant text replaced, last 10 turns)
+- `createConverseReducer()` folds ConverseStream events (structural type, no SDK import) into text plus tool calls. Tool-input JSON is concatenated from deltas and parsed at `contentBlockStop`
+- `diffFilter(before, after)` feeds the "what changed" chips in the UI. AZ order is not a change
+- `sse.ts`: `encodeSse(event, data)` / `createSseDecoder()`. Handles chunk boundaries, CRLF, comments and a missing trailing blank line
+- The route (`src/app/api/topology3d-chat`) only wires these to Bedrock and a `ReadableStream`. ADR-013
 
 ## Rules
 - Everything here is **pure**. Inject time via `opts.now`. No network or fs access

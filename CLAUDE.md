@@ -49,8 +49,8 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - `src/lib/queries/*.ts` — SQL 쿼리 파일 (`relationships.ts`가 토폴로지 원천)
 - `src/lib/app-config.ts` — `data/config.json` 로더. `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — ALB 헤더/쿠키 없으면 `anonymous`
-- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, 어댑터 3종(live/fixture/generator), `anonymize.ts`, `layout3d.ts`(순수 3D 레이아웃, ADR-012), `fixtures/`, vitest (ADR-010)
-- `src/components/topology3d/` — R3F 렌더러(`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML 패널(`SourcePanel` `Inspector`). 페이지는 `src/app/topology-3d/page.tsx`
+- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, 어댑터 3종(live/fixture/generator), `anonymize.ts`, `layout3d.ts`(순수 3D 레이아웃, ADR-012), `chat.ts`(채팅 요약·프롬프트·패치 검증·스트림 리듀서, ADR-013), `sse.ts`, `fixtures/`, vitest (ADR-010)
+- `src/components/topology3d/` — R3F 렌더러(`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML 패널(`SourcePanel` `FilterPanel` `Inspector` `ChatPanel`). 페이지는 `src/app/topology-3d/page.tsx`, 훅은 `src/hooks/useTopologySource.ts`·`useTopologyFilter.ts`(URL 동기화), 채팅 API는 `src/app/api/topology3d-chat/route.ts`
 - `src/lib/fossflow/generator.ts` — 기존 Topology View(FossFLOW) 모델 생성기. `TopologyGraph`를 입력으로 받음
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI 종합 진단 (Bedrock 직접 호출, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — 대시보드 쿼리 프리워밍 (4분 주기)
@@ -85,7 +85,7 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 ## 작업 규칙
 - 브랜치 `feature/topology-3d`. Phase별 커밋. upstream PR 없음
 - 새 페이지: `information_schema` 확인 → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → 빌드 → `src/app/CLAUDE.md` 갱신
-- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 012, 다음 013)
+- `src/` 새 디렉터리에는 `CLAUDE.md`. ADR은 `docs/decisions/NNN-*.md` 최대 번호 + 1 (현재 013, 다음 014)
 - 훅: `.claude/hooks/secret-scan.sh`(Write/Edit 전), `pre-commit.sh`(Bash 전), `check-doc-sync.sh`(Write/Edit 후)
 
 ---
@@ -141,8 +141,8 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - `src/lib/queries/*.ts` — SQL query files (`relationships.ts` feeds the topology)
 - `src/lib/app-config.ts` — `data/config.json` loader: `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — falls back to `anonymous` without ALB header/cookie
-- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, three adapters (live/fixture/generator), `anonymize.ts`, `layout3d.ts` (pure 3D layout, ADR-012), `fixtures/`, vitest (ADR-010)
-- `src/components/topology3d/` — R3F renderer (`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML panels (`SourcePanel` `Inspector`). Page: `src/app/topology-3d/page.tsx`
+- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, three adapters (live/fixture/generator), `anonymize.ts`, `layout3d.ts` (pure 3D layout, ADR-012), `chat.ts` (chat summary / prompt / patch validation / stream reducer, ADR-013), `sse.ts`, `fixtures/`, vitest (ADR-010)
+- `src/components/topology3d/` — R3F renderer (`Scene` `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`) + HTML panels (`SourcePanel` `FilterPanel` `Inspector` `ChatPanel`). Page: `src/app/topology-3d/page.tsx`; hooks `src/hooks/useTopologySource.ts` and `useTopologyFilter.ts` (URL sync); chat API `src/app/api/topology3d-chat/route.ts`
 - `src/lib/fossflow/generator.ts` — existing Topology View (FossFLOW) model generator, now fed a `TopologyGraph`
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI diagnosis (direct Bedrock, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — dashboard query pre-warming (4 min)
@@ -160,5 +160,5 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 ## Working Rules
 - Branch `feature/topology-3d`, one commit per Phase, no upstream PR
 - New page: check `information_schema` → `src/lib/queries/<x>.ts` → `src/app/<x>/page.tsx` → `Sidebar.tsx` → build → update `src/app/CLAUDE.md`
-- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 012, next 013)
+- New directory under `src/` gets a `CLAUDE.md`. ADR numbering: highest in `docs/decisions/` + 1 (currently 013, next 014)
 - Hooks: `.claude/hooks/secret-scan.sh` (pre Write/Edit), `pre-commit.sh` (pre Bash), `check-doc-sync.sh` (post Write/Edit)

@@ -23,6 +23,17 @@
 - 라벨이 드로우 콜의 절반 이상을 차지한다. 라벨 수를 늘리려면 `BatchedText`나 스프라이트 아틀라스로 가야 한다
 - 새 데이터 소스는 어댑터 하나만 추가하면 되고, 새 종류(NodeKind)는 `palette.ts`에 색·형태 한 줄씩이면 된다
 
+## 개정 (2026-09-10, Phase 4 가독성)
+
+실제 화면을 본 뒤 "뭐가 뭔지 모르겠다"는 피드백으로 렌더링 표현을 바꿨다. 레이아웃·계약·드로우 콜 원칙은 그대로다.
+
+1. **노드는 아이콘 판이다.** 종류별 형태(상자·원기둥·팔면체) 대신, 앞면에 AWS 서비스 아이콘을 얹은 얇은 3D 판을 기본 카메라 고도각(`ICON_TILT`, `FitCamera` 방향 (0.25, 0.75, 1))만큼 뒤로 기울여 세운다. 아이콘은 FossFLOW 뷰에 내장된 아이소메트릭 data URI를 재사용한다(네트워크 없음). 텍스처는 종류당 하나(캔버스 128px: 종류색 배경 + 테두리 + 아이콘)이고, 앞면 외의 면은 UV를 배경 텍셀 하나로 접어 같은 텍스처를 쓴다 — 그래서 여전히 종류당 InstancedMesh 하나, 드로우 콜 하나다. 스택은 윗면에 아이콘이 있는 기둥으로, 종류당 InstancedMesh 하나가 더 든다. 인스턴스 색은 텍스처에 곱한다(비활성 0.38, 호버 1.5, 선택 시안 틴트).
+2. **엣지는 튜브다.** `LineSegments`(1px, 각진 두 선분)를 버리고 엣지마다 2차 베지어(시작→띄운 중간→끝)를 링으로 샘플링한 튜브(반지름 0.04, 링 11개 × 6정점)를 하나의 인덱스 메시로 합친다(`tubes.ts`, 순수 함수·vitest). 여전히 드로우 콜 1개. 색은 더 밝게(`EDGE_COLORS`), 음영은 셰이더에서 법선으로 계산한다.
+3. **흐름 애니메이션은 셰이더가 한다.** `MeshBasicMaterial`에 `onBeforeCompile`로 `aT`(곡선 진행도)·`aDir`(방향 엣지 여부) 속성과 `uTime`·`uFlow` 유니폼을 넣어, 방향 엣지(target·route·egress)에 시작→끝으로 흐르는 밝은 대시를 그린다. 지오메트리 변경 없음. 켜면 `frameloop`이 `always`가 되고(정지 시 렌더 중단 포기), 끄면 `demand`로 돌아간다. 벤치마크가 끝나면 `PerfProbe`가 이 값으로 되돌린다.
+4. **범례.** 화면에 있는 종류(아이콘·이름·개수), 스택 설명, 엣지 종류를 HTML 오버레이로 둔다. 필터 패널의 종류 체크박스도 색 점 대신 같은 아이콘을 쓴다.
+
+드로우 콜은 종류 수 + 스택이 있는 종류 수 + 바닥 4 + 엣지 1 + 라벨로, 상한 50 안에 남는다. 흐름 애니메이션은 선택 사항이라 기본 성능 수치(`docs/perf/`)에는 포함하지 않는다.
+
 ---
 
 # ADR-012: 3D Topology Layout and Rendering Strategy (English)
@@ -48,3 +59,14 @@ Hundreds to thousands of nodes must render at 60fps in the browser, and a filter
 - Stress preset (1,001 EC2), first VPC: 55 individual nodes + 8 stacks, 46 draw calls, ~3,900 triangles, layout 1ms, 5s benchmark avg 60fps / min 56.5 / p95 17.3ms (M5 Pro, Chrome 152; `docs/perf/topology-3d/README.md`)
 - Labels are more than half of the draw calls; raising the label budget means `BatchedText` or a sprite atlas
 - A new data source is one adapter; a new `NodeKind` is one colour and one shape line in `palette.ts`
+
+## Amendment (2026-09-10, Phase 4 legibility)
+
+After seeing the real screen ("I can't tell what is what") the rendering was changed. Layout, contract and draw-call principles are unchanged.
+
+1. **Nodes are icon plaques.** Instead of a shape per kind (box, cylinder, octahedron), each node is a thin 3D tile with the AWS service icon on its front face, leaned back by the default camera elevation (`ICON_TILT`, the `FitCamera` direction (0.25, 0.75, 1)). Icons are the isometric data URIs already embedded for the FossFLOW view (no network). One texture per kind (128px canvas: kind-colour background + border + icon); every face but the front collapses its UVs to one background texel and shares that texture — so it is still one InstancedMesh and one draw call per kind. Stacks are columns with the icon on top, one more InstancedMesh per kind that has them. Instance colour multiplies the texture (inactive 0.38, hover 1.5, selected cyan tint).
+2. **Edges are tubes.** The 1px two-segment `LineSegments` is replaced by a quadratic Bézier per edge (from → lifted mid → to) sampled into rings (radius 0.04, 11 rings × 6 vertices) and merged into one indexed mesh (`tubes.ts`, pure and unit-tested). Still one draw call. Colours are brighter (`EDGE_COLORS`); shading is computed from normals in the shader.
+3. **The flow animation lives in the shader.** A `MeshBasicMaterial` patched via `onBeforeCompile` receives `aT` (progress along the curve) and `aDir` (directed edge) attributes plus `uTime` / `uFlow` uniforms and draws bright dashes travelling from → to on directed edges (target, route, egress). No geometry change. Turning it on switches `frameloop` to `always` (giving up render-on-demand); turning it off returns to `demand`. `PerfProbe` restores that value after a benchmark.
+4. **Legend.** An HTML overlay lists the kinds on screen (icon, name, count), the stack convention and the edge kinds. The filter panel's kind checkboxes use the same icons instead of colour dots.
+
+Draw calls are kinds + kinds with stacks + 4 ground sets + 1 edge mesh + labels, still under the cap of 50. The flow animation is optional and not part of the baseline numbers in `docs/perf/`.

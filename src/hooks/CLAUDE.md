@@ -5,7 +5,7 @@
 
 ## 파일
 - `useTopologySource.ts` — 3D 토폴로지 뷰의 데이터 소스. Live(`POST /api/steampipe` + `relationships.ts` 쿼리 18종 → `adapters/live`), Fixture(내장 JSON 또는 업로드 → `parseFixture`), Generator(`generateGraph`, 시드 기반) 세 갈래가 모두 같은 `TopologyGraph`를 낸다. 프리셋·파라미터·시드, 검증 실패 메시지(`issues`), JSON 내보내기(익명화 선택)를 포함. `SourcePanel`이 반환 객체를 그대로 받는다
-- (Phase 4) `useTopologyFilter.ts` — `TopologyFilter`와 URL 쿼리 동기화
+- `useTopologyFilter.ts` — 3D 토폴로지 뷰의 필터. `TopologyFilter`를 들고 URL 쿼리와 동기화한다: 초기값은 `useSearchParams`에서 읽고(`filterFromSearchParams`), 변경은 `history.replaceState`로 쓴다(`filterToSearchParams`, 기본값과 다른 항목만). Next 14.1+가 native replaceState를 라우터와 동기화하므로 뒤로/앞으로도 필터로 돌아온다. `patch(p)` → `mergeFilter`, `reset`, `isDefault`, `shareUrl`. 체크박스·툴바·채팅이 모두 `patch`를 쓴다. 호출하는 페이지는 `Suspense`로 감싼다 (ADR-013)
 
 ## 규칙
 - 모든 훅에 `'use client'`
@@ -23,7 +23,7 @@ Custom React hooks: state logic too big to sit in a page. Account context is not
 
 ## Files
 - `useTopologySource.ts` — the 3D topology view's data source. Live (`POST /api/steampipe` with the 18 `relationships.ts` queries → `adapters/live`), Fixture (built-in JSON or an upload → `parseFixture`), and Generator (`generateGraph`, seeded) all resolve to the same `TopologyGraph`. Carries presets, params and seed, per-field validation messages (`issues`), and JSON export with optional anonymization. `SourcePanel` renders the returned object as-is
-- (Phase 4) `useTopologyFilter.ts` — `TopologyFilter` with URL query synchronization
+- `useTopologyFilter.ts` — the 3D topology view's filter. Holds the `TopologyFilter` and keeps it in the URL query: the initial value comes from `useSearchParams` (`filterFromSearchParams`), changes are written with `history.replaceState` (`filterToSearchParams`, non-default entries only). Next 14.1+ syncs native replaceState with the router, so back/forward restore the filter. `patch(p)` → `mergeFilter`, `reset`, `isDefault`, `shareUrl`. Checkboxes, toolbar and chat all go through `patch`. The calling page must sit inside `Suspense` (ADR-013)
 
 ## Rules
 - Every hook is `'use client'`

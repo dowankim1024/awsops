@@ -26,11 +26,14 @@ export const KIND_COLORS: Record<NodeKind, string> = {
   route53: '#c084fc',
 };
 
+// Bright on purpose: tubes are shaded down in the shader and dimmed when unrelated
+// to the selection, so the base has to start vivid.
+// 일부러 밝게. 튜브는 셰이더에서 음영이 깎이고 선택과 무관하면 더 어두워진다.
 export const EDGE_COLORS: Record<EdgeKind, string> = {
-  target: '#ec4899',
-  route: '#00d4ff',
-  attach: '#ef4444',
-  egress: '#9ca3af',
+  target: '#ff6ec7',
+  route: '#4de6ff',
+  attach: '#ff7a7a',
+  egress: '#d7dce6',
 };
 
 export const GROUND_COLORS = {
