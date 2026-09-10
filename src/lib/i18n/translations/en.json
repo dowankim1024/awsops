@@ -1470,5 +1470,13 @@
   "topology3d.chat.change.emptyOn": "empty subnets shown",
   "topology3d.chat.change.emptyOff": "empty subnets hidden",
   "topology3d.chat.change.query": "search \"{value}\"",
-  "topology3d.chat.change.queryClear": "search cleared"
+  "topology3d.chat.change.queryClear": "search cleared",
+  "topology3d.toolbar.flow": "Flow animation",
+  "topology3d.toolbar.legend": "Legend",
+  "topology3d.legend.title": "Legend",
+  "topology3d.legend.stack": "Column = a stack of same-kind nodes (×N). Click the subnet to expand",
+  "topology3d.legend.edge.target": "Load balancer → instance",
+  "topology3d.legend.edge.route": "Subnet → gateway (route)",
+  "topology3d.legend.edge.attach": "Gateway ↔ VPC attachment",
+  "topology3d.legend.edge.egress": "NAT → internet gateway"
 }

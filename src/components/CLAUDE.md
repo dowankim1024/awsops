@@ -25,9 +25,10 @@
 - `charts/LineChartCard.tsx` — 라인 차트
 - `charts/PieChartCard.tsx` — 파이 차트
 
-### topology3d/ — 3D 토폴로지 UI (8, Phase 2–3)
+### topology3d/ — 3D 토폴로지 UI (Phase 2–4)
 - `topology3d/SourcePanel.tsx` — Live / Fixture / Generator 소스 전환. 상태는 `@/hooks/useTopologySource`가 소유
-- `topology3d/Scene.tsx` — R3F Canvas 진입점(`dynamic(..., { ssr: false })`로만 로드). `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`를 조립
+- `topology3d/Scene.tsx` — R3F Canvas 진입점(`dynamic(..., { ssr: false })`로만 로드). `Ground` `InstancedNodes`(아이콘 판) `Edges`(튜브·흐름) `Labels` `PerfHud` `Legend`를 조립
+- `topology3d/FilterPanel.tsx` `ChatPanel.tsx` — 필터 체크박스 · 필터 채팅 (three 미사용, ADR-013)
 - `topology3d/Inspector.tsx` — 선택 요소 상세 (three 미사용). 규칙은 `src/components/topology3d/CLAUDE.md`
 
 ### table/ — 데이터 테이블 (1)
@@ -83,9 +84,10 @@ Shared React components across pages: layout, cards, charts, tables, K8s UI.
 ### k8s/ — K8s Components (4)
 - `k8s/K9sResourceTable.tsx`, `K9sDetailPanel.tsx`, `K9sClusterHeader.tsx`, `NamespaceFilter.tsx`
 
-### topology3d/ — 3D Topology UI (8, Phase 2–3)
+### topology3d/ — 3D Topology UI (Phase 2–4)
 - `topology3d/SourcePanel.tsx` — Live / Fixture / Generator switch; state owned by `@/hooks/useTopologySource`
-- `topology3d/Scene.tsx` — R3F Canvas entry (loaded only via `dynamic(..., { ssr: false })`); composes `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`
+- `topology3d/Scene.tsx` — R3F Canvas entry (loaded only via `dynamic(..., { ssr: false })`); composes `Ground` `InstancedNodes` (icon plaques) `Edges` (tubes + flow) `Labels` `PerfHud` `Legend`
+- `topology3d/FilterPanel.tsx` `ChatPanel.tsx` — filter checkboxes · filter chat (no three.js, ADR-013)
 - `topology3d/Inspector.tsx` — selection details (no three.js). Rules in `src/components/topology3d/CLAUDE.md`
 
 ## Rules

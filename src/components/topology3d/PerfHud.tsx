@@ -30,8 +30,12 @@ interface Bench {
   prevAutoRotate: boolean;
 }
 
-export function PerfProbe({ store }: { store: PerfStore }) {
+export function PerfProbe({ store, idleFrameloop = 'demand' }: { store: PerfStore; idleFrameloop?: 'demand' | 'always' }) {
   const gl = useThree((s) => s.gl);
+  // What the benchmark hands the loop back to (always while the flow animation is on).
+  // 벤치마크가 끝난 뒤 되돌릴 frameloop (흐름 애니메이션 중이면 always).
+  const idleRef = useRef(idleFrameloop);
+  idleRef.current = idleFrameloop;
   const setFrameloop = useThree((s) => s.setFrameloop);
   const invalidate = useThree((s) => s.invalidate);
   const controls = useThree((s) => s.controls) as unknown as OrbitLike | null;
@@ -94,7 +98,7 @@ export function PerfProbe({ store }: { store: PerfStore }) {
         const c = controlsRef.current;
         if (c) c.autoRotate = b.prevAutoRotate;
         bench.current = null;
-        setFrameloop('demand');
+        setFrameloop(idleRef.current);
       }
     }
 

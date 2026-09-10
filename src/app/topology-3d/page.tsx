@@ -10,7 +10,17 @@
 // 같은 객체를 패치한다. 펼침·선택 상태는 여기서 들고, 씬에는 Layout3D만 준다.
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ChevronsDownUp, Gauge, Maximize2, MessageSquare, PanelLeftClose, PanelLeftOpen, SearchCheck } from 'lucide-react';
+import {
+  Activity,
+  ChevronsDownUp,
+  Gauge,
+  ListTree,
+  Maximize2,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  SearchCheck,
+} from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import ChatPanel from '@/components/topology3d/ChatPanel';
@@ -100,6 +110,8 @@ function Topology3dView() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightTab, setRightTab] = useState<RightTab>('inspector');
   const [showHud, setShowHud] = useState(true);
+  const [showLegend, setShowLegend] = useState(true);
+  const [flow, setFlow] = useState(false);
   const [fitNonce, setFitNonce] = useState(0);
   const perf = useMemo(() => createPerfStore(), []);
 
@@ -197,6 +209,14 @@ function Topology3dView() {
             {t('topology3d.toolbar.collapseAll')} ({expanded.size})
           </ToolbarButton>
         )}
+        <ToolbarButton onClick={() => setFlow((v) => !v)} active={flow} title={t('topology3d.toolbar.flow')}>
+          <Activity size={13} />
+          {t('topology3d.toolbar.flow')}
+        </ToolbarButton>
+        <ToolbarButton onClick={() => setShowLegend((v) => !v)} active={showLegend} title={t('topology3d.toolbar.legend')}>
+          <ListTree size={13} />
+          {t('topology3d.toolbar.legend')}
+        </ToolbarButton>
         <ToolbarButton onClick={() => setShowHud((v) => !v)} active={showHud} title={t('topology3d.toolbar.hud')}>
           <Gauge size={13} />
           {t('topology3d.toolbar.hud')}
@@ -243,6 +263,8 @@ function Topology3dView() {
               onToggleExpand={toggleExpand}
               perf={perf}
               showHud={showHud}
+              showLegend={showLegend}
+              flow={flow}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-sm text-gray-500">

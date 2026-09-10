@@ -14,6 +14,7 @@ import type { TopologyFilter, TopologyFilterPatch } from '@/lib/topology/filter'
 import { GLOBAL_KINDS, NODE_KINDS, TIERS, type NodeKind, type Tier, type TopologyGraph } from '@/lib/topology/types';
 
 import { KIND_COLORS } from './colors';
+import { KIND_ICON_URL } from './icons';
 
 export interface FilterPanelProps {
   graph: TopologyGraph | null; // unfiltered / 필터 전 그래프
@@ -61,6 +62,7 @@ function CheckRow({
   label,
   count,
   color,
+  icon,
   disabled,
 }: {
   checked: boolean;
@@ -68,6 +70,7 @@ function CheckRow({
   label: string;
   count?: number;
   color?: string;
+  icon?: string;
   disabled?: boolean;
 }) {
   return (
@@ -83,7 +86,14 @@ function CheckRow({
         onChange={(e) => onChange(e.target.checked)}
         className="accent-accent-cyan"
       />
-      {color && <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: color }} />}
+      {icon ? (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm" style={{ backgroundColor: color ? `${color}33` : undefined }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={icon} alt="" className="h-3.5 w-3.5" draggable={false} />
+        </span>
+      ) : (
+        color && <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: color }} />
+      )}
       <span className="flex-1 truncate">{label}</span>
       {count !== undefined && <span className="font-mono text-[11px] text-gray-500">{count}</span>}
     </label>
@@ -259,6 +269,7 @@ export default function FilterPanel({ graph, vpcId, filter, isDefault, onPatch, 
               label={kind}
               count={counts.kinds[kind]}
               color={KIND_COLORS[kind]}
+              icon={KIND_ICON_URL[kind]}
             />
           ))}
         </div>
@@ -280,6 +291,7 @@ export default function FilterPanel({ graph, vpcId, filter, isDefault, onPatch, 
               label={kind}
               count={counts.kinds[kind]}
               color={KIND_COLORS[kind]}
+              icon={KIND_ICON_URL[kind]}
             />
           ))}
         </div>

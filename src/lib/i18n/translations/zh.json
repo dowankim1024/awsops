@@ -1441,5 +1441,13 @@
   "topology3d.chat.change.emptyOn": "显示空子网",
   "topology3d.chat.change.emptyOff": "隐藏空子网",
   "topology3d.chat.change.query": "搜索 \"{value}\"",
-  "topology3d.chat.change.queryClear": "清除搜索"
+  "topology3d.chat.change.queryClear": "清除搜索",
+  "topology3d.toolbar.flow": "流动动画",
+  "topology3d.toolbar.legend": "图例",
+  "topology3d.legend.title": "图例",
+  "topology3d.legend.stack": "柱体 = 同类节点折叠的堆栈 (×N)。点击子网展开",
+  "topology3d.legend.edge.target": "负载均衡器 → 实例",
+  "topology3d.legend.edge.route": "子网 → 网关 (路由)",
+  "topology3d.legend.edge.attach": "网关 ↔ VPC 连接",
+  "topology3d.legend.edge.egress": "NAT → 互联网网关"
 }

@@ -1470,5 +1470,13 @@
   "topology3d.chat.change.emptyOn": "빈 서브넷 표시",
   "topology3d.chat.change.emptyOff": "빈 서브넷 숨김",
   "topology3d.chat.change.query": "검색 \"{value}\"",
-  "topology3d.chat.change.queryClear": "검색 해제"
+  "topology3d.chat.change.queryClear": "검색 해제",
+  "topology3d.toolbar.flow": "흐름 애니메이션",
+  "topology3d.toolbar.legend": "범례",
+  "topology3d.legend.title": "범례",
+  "topology3d.legend.stack": "기둥 = 같은 종류 여러 개를 접은 스택 (×N). 서브넷 클릭으로 펼침",
+  "topology3d.legend.edge.target": "로드밸런서 → 인스턴스",
+  "topology3d.legend.edge.route": "서브넷 → 게이트웨이 (라우트)",
+  "topology3d.legend.edge.attach": "게이트웨이 ↔ VPC 연결",
+  "topology3d.legend.edge.egress": "NAT → 인터넷 게이트웨이"
 }
