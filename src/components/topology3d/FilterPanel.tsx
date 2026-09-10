@@ -11,9 +11,19 @@ import { Check, Link2, RotateCcw, Search } from 'lucide-react';
 
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import type { TopologyFilter, TopologyFilterPatch } from '@/lib/topology/filter';
-import { GLOBAL_KINDS, NODE_KINDS, TIERS, type NodeKind, type Tier, type TopologyGraph } from '@/lib/topology/types';
+import {
+  DERIVED_EDGE_KINDS,
+  EXPLICIT_EDGE_KINDS,
+  GLOBAL_KINDS,
+  NODE_KINDS,
+  TIERS,
+  type EdgeKind,
+  type NodeKind,
+  type Tier,
+  type TopologyGraph,
+} from '@/lib/topology/types';
 
-import { KIND_COLORS } from './colors';
+import { EDGE_COLORS, KIND_COLORS } from './colors';
 import { KIND_ICON_URL } from './icons';
 
 export interface FilterPanelProps {
@@ -33,13 +43,17 @@ interface Counts {
   tiers: Record<Tier, number>;
   azs: { az: string; subnets: number }[];
   kinds: Record<NodeKind, number>;
+  edges: Record<EdgeKind, number>;
 }
 
 function countGraph(graph: TopologyGraph | null, vpcId: string | null): Counts {
   const tiers: Record<Tier, number> = { public: 0, private: 0 };
   const azMap = new Map<string, number>();
   const kinds = Object.fromEntries(NODE_KINDS.map((k) => [k, 0])) as Record<NodeKind, number>;
-  if (!graph) return { tiers, azs: [], kinds };
+  const edges = Object.fromEntries(
+    [...EXPLICIT_EDGE_KINDS, ...DERIVED_EDGE_KINDS].map((k) => [k, 0])
+  ) as Record<EdgeKind, number>;
+  if (!graph) return { tiers, azs: [], kinds, edges };
   graph.subnets.forEach((s) => {
     if (s.vpcId !== vpcId) return;
     tiers[s.tier] += 1;
@@ -50,10 +64,16 @@ function countGraph(graph: TopologyGraph | null, vpcId: string | null): Counts {
     kinds[n.kind] += 1;
     if (n.vpcId === vpcId && n.az && !azMap.has(n.az)) azMap.set(n.az, 0);
   });
+  // Edge counts are graph-wide (an edge can leave the current VPC toward a
+  // global node), which is also what the chat prompt reports.
+  // 엣지 개수는 그래프 전체 기준. 전역 노드로 나가는 선이 있기 때문이다.
+  graph.edges.forEach((e) => {
+    if (e.kind in edges) edges[e.kind] += 1;
+  });
   const azs = Array.from(azMap.entries())
     .map(([az, subnets]) => ({ az, subnets }))
     .sort((a, b) => a.az.localeCompare(b.az));
-  return { tiers, azs, kinds };
+  return { tiers, azs, kinds, edges };
 }
 
 function CheckRow({
@@ -169,6 +189,20 @@ export default function FilterPanel({ graph, vpcId, filter, isDefault, onPatch, 
 
   const setKinds = (kinds: readonly NodeKind[], on: boolean) =>
     onPatch({ kinds: Object.fromEntries(kinds.map((k) => [k, on])) });
+
+  const setEdgeKinds = (kinds: readonly EdgeKind[], on: boolean) =>
+    onPatch({ edgeKinds: Object.fromEntries(kinds.map((k) => [k, on])) });
+
+  const edgeRow = (kind: EdgeKind) => (
+    <CheckRow
+      key={kind}
+      checked={filter.edgeKinds[kind]}
+      onChange={(v) => onPatch({ edgeKinds: { [kind]: v } })}
+      label={t(`topology3d.filter.edge.${kind}`)}
+      count={counts.edges[kind]}
+      color={EDGE_COLORS[kind]}
+    />
+  );
 
   return (
     <div className="bg-navy-800 rounded-lg border border-navy-600 p-4 space-y-4">
@@ -295,6 +329,34 @@ export default function FilterPanel({ graph, vpcId, filter, isDefault, onPatch, 
             />
           ))}
         </div>
+        <CheckRow
+          checked={filter.showConnectedGlobals}
+          onChange={(v) => onPatch({ showConnectedGlobals: v })}
+          label={t('topology3d.filter.connectedGlobals')}
+        />
+      </div>
+
+      {/* Edges: explicit relationships vs configuration-inferred paths */}
+      <div>
+        <GroupHeader
+          title={t('topology3d.filter.explicitEdges')}
+          onAll={() => setEdgeKinds(EXPLICIT_EDGE_KINDS, true)}
+          onNone={() => setEdgeKinds(EXPLICIT_EDGE_KINDS, false)}
+          allLabel={t('topology3d.filter.all')}
+          noneLabel={t('topology3d.filter.none')}
+        />
+        {EXPLICIT_EDGE_KINDS.map(edgeRow)}
+      </div>
+      <div>
+        <GroupHeader
+          title={t('topology3d.filter.derivedEdges')}
+          onAll={() => setEdgeKinds(DERIVED_EDGE_KINDS, true)}
+          onNone={() => setEdgeKinds(DERIVED_EDGE_KINDS, false)}
+          allLabel={t('topology3d.filter.all')}
+          noneLabel={t('topology3d.filter.none')}
+        />
+        {DERIVED_EDGE_KINDS.map(edgeRow)}
+        <p className="mt-1 text-[11px] leading-snug text-gray-500">{t('topology3d.legend.derivedNote')}</p>
       </div>
     </div>
   );

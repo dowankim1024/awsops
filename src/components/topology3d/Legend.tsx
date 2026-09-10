@@ -7,7 +7,13 @@ import { useMemo } from 'react';
 
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { type Layout3D } from '@/lib/topology/layout3d';
-import { EDGE_KINDS, NODE_KINDS, type EdgeKind, type NodeKind } from '@/lib/topology/types';
+import {
+  DERIVED_EDGE_KINDS,
+  EXPLICIT_EDGE_KINDS,
+  NODE_KINDS,
+  type EdgeKind,
+  type NodeKind,
+} from '@/lib/topology/types';
 
 import { EDGE_COLORS, KIND_COLORS } from './colors';
 import { KIND_ICON_URL, KIND_LABELS } from './icons';
@@ -22,9 +28,15 @@ export default function Legend({ layout }: { layout: Layout3D }) {
     return NODE_KINDS.filter((k) => counts.has(k)).map((k) => ({ kind: k, count: counts.get(k) ?? 0 }));
   }, [layout]);
 
-  const edgeKinds = useMemo(() => {
+  // Explicit relationships and configuration-inferred paths are listed apart, so
+  // a dashed line is never read as "AWS says these two talk".
+  // 명시 관계와 설정 추론을 나눠 보여 준다. 점선을 실제 통신으로 읽지 않게.
+  const { explicit, derived } = useMemo(() => {
     const present = new Set<EdgeKind>(layout.edges.map((e) => e.kind));
-    return EDGE_KINDS.filter((k) => present.has(k));
+    return {
+      explicit: EXPLICIT_EDGE_KINDS.filter((k) => present.has(k)),
+      derived: DERIVED_EDGE_KINDS.filter((k) => present.has(k)),
+    };
   }, [layout.edges]);
 
   if (!kinds.length) return null;
@@ -49,15 +61,42 @@ export default function Legend({ layout }: { layout: Layout3D }) {
       {layout.clusters.length > 0 && (
         <p className="mt-2 border-t border-navy-600 pt-1.5 text-gray-500">{t('topology3d.legend.stack')}</p>
       )}
-      {edgeKinds.length > 0 && (
-        <ul className="mt-2 space-y-1 border-t border-navy-600 pt-1.5">
-          {edgeKinds.map((k) => (
-            <li key={k} className="flex items-center gap-2">
-              <span className="h-1 w-5 shrink-0 rounded-full" style={{ backgroundColor: EDGE_COLORS[k] }} />
-              <span className="flex-1 truncate text-gray-400">{t(`topology3d.legend.edge.${k}`)}</span>
-            </li>
-          ))}
-        </ul>
+      {explicit.length > 0 && (
+        <div className="mt-2 border-t border-navy-600 pt-1.5">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+            {t('topology3d.legend.explicit')}
+          </p>
+          <ul className="space-y-1">
+            {explicit.map((k) => (
+              <li key={k} className="flex items-center gap-2">
+                <span className="h-1 w-5 shrink-0 rounded-full" style={{ backgroundColor: EDGE_COLORS[k] }} />
+                <span className="flex-1 truncate text-gray-400">{t(`topology3d.legend.edge.${k}`)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {derived.length > 0 && (
+        <div className="mt-2 border-t border-navy-600 pt-1.5">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+            {t('topology3d.legend.derived')}
+          </p>
+          <ul className="space-y-1">
+            {derived.map((k) => (
+              <li key={k} className="flex items-center gap-2">
+                {/* dashed swatch: the same pattern the tube shader cuts out / 튜브 셰이더와 같은 점선 */}
+                <span
+                  className="h-1 w-5 shrink-0 rounded-full"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(90deg, ${EDGE_COLORS[k]} 0 3px, transparent 3px 6px)`,
+                  }}
+                />
+                <span className="flex-1 truncate text-gray-400">{t(`topology3d.legend.edge.${k}`)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[10px] leading-snug text-gray-500">{t('topology3d.legend.derivedNote')}</p>
+        </div>
       )}
     </div>
   );

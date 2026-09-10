@@ -54,12 +54,18 @@ function changeLabel(c: FilterChange, t: (k: string, p?: Record<string, string |
       });
     case 'kinds':
       return t(c.value ? 'topology3d.chat.change.kindOn' : 'topology3d.chat.change.kindOff', { key: c.key });
+    case 'edgeKinds':
+      return t(c.value ? 'topology3d.chat.change.edgeOn' : 'topology3d.chat.change.edgeOff', {
+        key: t(`topology3d.filter.edge.${c.key}`),
+      });
     case 'azs':
       return c.value === null
         ? t('topology3d.chat.change.azsAll')
         : t('topology3d.chat.change.azs', { value: c.value.map((a) => a.replace(/^.*(?=\d[a-z]$)/, '')).join(', ') });
     case 'includeEmptySubnets':
       return t(c.value ? 'topology3d.chat.change.emptyOn' : 'topology3d.chat.change.emptyOff');
+    case 'showConnectedGlobals':
+      return t(c.value ? 'topology3d.chat.change.globalsOn' : 'topology3d.chat.change.globalsOff');
     case 'query':
       return c.value ? t('topology3d.chat.change.query', { value: c.value }) : t('topology3d.chat.change.queryClear');
   }

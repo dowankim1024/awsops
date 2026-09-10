@@ -12,9 +12,7 @@ import {
 import { type TopologyEdge } from '../types';
 import { validateGraph } from '../validate';
 import {
-  ALB_DNS,
   BUCKET,
-  CF_DOMAIN,
   FN,
   ROLE_APP,
   ROLE_WILD,

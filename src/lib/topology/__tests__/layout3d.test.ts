@@ -72,7 +72,12 @@ function assertNoOverlap(layout: Layout3D) {
       expect(overlaps(layout.vpcs[i], layout.vpcs[j])).toBe(false);
     }
   }
-  if (layout.tray) layout.vpcs.forEach((v) => expect(overlaps(v, layout.tray!)).toBe(false));
+  layout.trays.forEach((t) => layout.vpcs.forEach((v) => expect(overlaps(v, t), `${t.id} vs ${v.id}`).toBe(false)));
+  for (let i = 0; i < layout.trays.length; i += 1) {
+    for (let j = i + 1; j < layout.trays.length; j += 1) {
+      expect(overlaps(layout.trays[i], layout.trays[j]), `${layout.trays[i].id} vs ${layout.trays[j].id}`).toBe(false);
+    }
+  }
 }
 
 describe('computeLayout', () => {
@@ -162,17 +167,56 @@ describe('computeLayout', () => {
     ['igw-1', 'alb:web', 'alb:internal', 'rds:db'].forEach((id) => expect(inside(pos(id), l.vpcs[0])).toBe(true));
   });
 
-  it('draws account-global nodes in a tray to the right of every VPC', () => {
+  it('draws unconnected account-global nodes in a side tray right of every VPC', () => {
     const l = computeLayout(smallGraph());
-    expect(l.tray).not.toBeNull();
-    expect(l.tray!.count).toBe(2);
+    const side = l.trays.find((t) => t.role === 'side')!;
+    expect(side).toBeDefined();
+    expect(side.count).toBe(2);
     const vpc = l.vpcs[0];
-    expect(l.tray!.center.x - l.tray!.size.x / 2).toBeGreaterThan(vpc.center.x + vpc.size.x / 2);
+    expect(side.center.x - side.size.x / 2).toBeGreaterThan(vpc.center.x + vpc.size.x / 2);
     ['s3:bucket', 'dynamodb:table'].forEach((id) => {
       const p = l.nodes.find((n) => n.id === id)!.position;
-      expect(inside(p, l.tray!)).toBe(true);
+      expect(inside(p, side)).toBe(true);
     });
     expect(l.labels.some((lb) => lb.kind === 'tray')).toBe(true);
+  });
+
+  it('moves connected globals into the flow: edge kinds in front, data kinds behind', () => {
+    const g = smallGraph();
+    g.nodes.push(node('cloudfront:E1', 'cloudfront', { meta: { distributionId: 'E1' } }));
+    g.nodes.push(node('route53:example.com.', 'route53', { name: 'example.com' }));
+    g.edges.push(
+      { id: 'origin:route53:example.com.->cloudfront:E1', from: 'route53:example.com.', to: 'cloudfront:E1', kind: 'origin' },
+      { id: 'origin:cloudfront:E1->alb:web', from: 'cloudfront:E1', to: 'alb:web', kind: 'origin' },
+      { id: 'permits:i-app-00->s3:bucket', from: 'i-app-00', to: 's3:bucket', kind: 'permits' }
+    );
+    const l = computeLayout(g);
+    const vpc = l.vpcs[0];
+    const front = l.trays.find((t) => t.role === 'front')!;
+    const back = l.trays.find((t) => t.role === 'back')!;
+    const side = l.trays.find((t) => t.role === 'side')!;
+    expect(front.count).toBe(2);
+    expect(back.count).toBe(1);
+    // dynamodb:table has no edge, so it stays on the side / 선이 없는 것만 옆에 남는다
+    expect(side.count).toBe(1);
+    expect(front.center.z - front.size.z / 2).toBeGreaterThan(vpc.center.z + vpc.size.z / 2);
+    expect(back.center.z + back.size.z / 2).toBeLessThan(vpc.center.z - vpc.size.z / 2);
+    ['cloudfront:E1', 'route53:example.com.'].forEach((id) =>
+      expect(inside(l.nodes.find((n) => n.id === id)!.position, front)).toBe(true)
+    );
+    expect(inside(l.nodes.find((n) => n.id === 's3:bucket')!.position, back)).toBe(true);
+    assertNoOverlap(l);
+  });
+
+  it('lifts an inferred edge above the explicit edge joining the same anchors', () => {
+    const g = smallGraph();
+    g.edges.push({ id: 'allows:alb:web->i-app-00', from: 'alb:web', to: 'i-app-00', kind: 'allows' });
+    const l = computeLayout(g);
+    const stack = l.clusters.find((c) => c.subnetId === 'sn-prv-a' && c.kind === 'ec2')!;
+    const target = l.edges.find((e) => e.kind === 'target' && e.fromId === 'alb:web' && e.toId === stack.id)!;
+    const allows = l.edges.find((e) => e.kind === 'allows' && e.fromId === 'alb:web' && e.toId === stack.id)!;
+    expect(allows.mid.y).toBeGreaterThan(target.mid.y);
+    expect(allows.from).toEqual(target.from);
   });
 
   it('folds edges onto anchors, lifts the midpoint and drops dangling ones', () => {

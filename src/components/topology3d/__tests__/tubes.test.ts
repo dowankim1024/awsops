@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { type PlacedEdge } from '@/lib/topology/layout3d';
-import { DEFAULT_TUBE, buildTubes } from '../tubes';
+import { DASH_WORLD, DEFAULT_TUBE, buildTubes } from '../tubes';
 
 const edge = (id: string, kind: PlacedEdge['kind'], from: [number, number, number], to: [number, number, number]): PlacedEdge => ({
   id,
@@ -14,6 +14,7 @@ const edge = (id: string, kind: PlacedEdge['kind'], from: [number, number, numbe
 });
 
 const edges = [edge('e1', 'target', [0, 0.6, 0], [6, 0.6, 3]), edge('e2', 'attach', [0, 0.6, 0], [0, 0.6, -8])];
+const derivedEdges = [edge('d1', 'allows', [0, 0.6, 0], [6, 0.6, 0]), edge('d2', 'route', [0, 0.6, 0], [6, 0.6, 0])];
 
 describe('buildTubes', () => {
   it('sizes buffers from edges × rings × radial and indexes only valid vertices', () => {
@@ -71,6 +72,24 @@ describe('buildTubes', () => {
     expect(b.t[per / 5 * 2]).toBeCloseTo(0.5, 5);
     expect(b.dir[0]).toBe(1); // target
     expect(b.dir[per]).toBe(0); // attach
+  });
+
+  it('flags configuration-inferred kinds for the dash mask, explicit ones not', () => {
+    const b = buildTubes(derivedEdges, { radius: 0.1, segments: 4, radial: 3 });
+    const per = b.verticesPerEdge;
+    expect(b.derived[0]).toBe(1); // allows
+    expect(b.derived[per]).toBe(0); // route
+    expect(b.dir[0]).toBe(1); // inferred edges have a direction too
+  });
+
+  it('measures the dash phase along the curve, not along t', () => {
+    const b = buildTubes(derivedEdges, { radius: 0.1, segments: 8, radial: 3 });
+    const per = b.verticesPerEdge;
+    expect(b.dash[0]).toBe(0);
+    // Monotonic, and the last ring equals the curve length in dash units.
+    for (let r = 1; r <= 8; r += 1) expect(b.dash[r * 3]).toBeGreaterThan(b.dash[(r - 1) * 3]);
+    // The arc bows 2 units above a 6-unit chord, so it is longer than the chord.
+    expect(b.dash[per - 1] * DASH_WORLD).toBeGreaterThan(6);
   });
 
   it('handles an empty edge list', () => {

@@ -5,9 +5,11 @@
 // dim everything not touching the selection. A small shader patch adds a
 // flow animation — bright dashes travelling from → to on directed edges —
 // driven by a time uniform; the page turns it on together with a continuous
-// frameloop.
+// frameloop. Configuration-inferred edges (ADR-014) are drawn as dashed tubes,
+// so a permitted path is never mistaken for an explicit relationship.
 // 모든 엣지를 튜브 메시 하나로. 둥글고 매끈한 베지어 호, 실제 두께, 드로우 콜 1개. 정점 색이 종류를
-// 나타내고 선택과 무관한 엣지는 어둡게. 셰이더 패치로 방향 엣지에 흐르는 대시(흐름 애니메이션)를 얹는다.
+// 나타내고 선택과 무관한 엣지는 어둡게. 셰이더 패치로 방향 엣지에 흐르는 대시(흐름 애니메이션)를 얹고,
+// 설정 추론 엣지(ADR-014)는 점선으로 그려 명시 관계와 구분한다.
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -31,6 +33,7 @@ const FADED = 0.18; // brightness of unrelated edges while something is selected
 const LIT = 1.35; // above 1: a glow on the selection's edges (toneMapped off) / 선택 엣지는 1 이상으로 빛나게
 const FLOW_SPEED = 0.9; // dashes per second along an edge / 초당 대시 이동 (엣지 길이 기준)
 const FLOW_REPEAT = 4.0; // dashes per edge / 엣지당 대시 수
+const DASH_DUTY = 0.58; // lit fraction of each dash period on inferred edges / 점선의 채워진 비율
 
 interface FlowUniforms {
   uTime: { value: number };
@@ -48,8 +51,12 @@ function makeMaterial(uniforms: FlowUniforms): THREE.MeshBasicMaterial {
         `#include <common>
 attribute float aT;
 attribute float aDir;
+attribute float aDash;
+attribute float aDerived;
 varying float vT;
 varying float vDir;
+varying float vDash;
+varying float vDerived;
 varying float vShade;`
       )
       .replace(
@@ -57,6 +64,8 @@ varying float vShade;`
         `#include <begin_vertex>
 vT = aT;
 vDir = aDir;
+vDash = aDash;
+vDerived = aDerived;
 // Cheap directional shading so the tubes read as round.
 vShade = 0.62 + 0.38 * max(0.0, dot(normalize(normalMatrix * normal), normalize(vec3(0.35, 0.9, 0.45))));`
       );
@@ -68,11 +77,16 @@ uniform float uTime;
 uniform float uFlow;
 varying float vT;
 varying float vDir;
+varying float vDash;
+varying float vDerived;
 varying float vShade;`
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
+// Inferred edges are dashed: the gaps are cut out of the tube itself, so a
+// permitted path never reads as an observed connection.
+if (vDerived > 0.5 && fract(vDash) > ${DASH_DUTY.toFixed(2)}) discard;
 diffuseColor.rgb *= vShade;
 float ph = fract(vT * ${FLOW_REPEAT.toFixed(1)} - uTime * ${FLOW_SPEED.toFixed(2)});
 float band = smoothstep(0.0, 0.16, ph) * (1.0 - smoothstep(0.16, 0.40, ph));
@@ -97,6 +111,8 @@ export default function Edges({ edges, selectedId, selectedAnchorId, flow }: Edg
     geo.setAttribute('normal', new THREE.BufferAttribute(b.normal, 3));
     geo.setAttribute('aT', new THREE.BufferAttribute(b.t, 1));
     geo.setAttribute('aDir', new THREE.BufferAttribute(b.dir, 1));
+    geo.setAttribute('aDash', new THREE.BufferAttribute(b.dash, 1));
+    geo.setAttribute('aDerived', new THREE.BufferAttribute(b.derived, 1));
     const colors = new THREE.BufferAttribute(new Float32Array(b.vertexCount * 3), 3);
     geo.setAttribute('color', colors);
     geo.setIndex(new THREE.BufferAttribute(b.index, 1));
