@@ -62,7 +62,9 @@ Generator ───── adapters/generator.ts ┘   ▲    (types.ts)        (
 - 렌더러는 좌표를 계산하지 않는다. 위치·크기·라벨·엣지 끝점은 전부 `Layout3D`에서 온다
 - 배치: VPC는 X축으로 나란히, AZ는 VPC 안 X축 레인, 티어는 Z축(퍼블릭이 +z, 카메라 쪽). 서브넷 단 위 격자는 종류 순(`NODE_KINDS`)으로 묶는다
 - 서브넷이 없는 VPC 노드는 서비스 행: 앞(igw, tgw, internet-facing LB) · 중간(internal LB, endpoint, eks, 나머지) · 뒤(rds, elasticache, msk, opensearch). 계정 전역 노드는 트레이 3종(`trays[]`) — 선이 닿는 CloudFront·Route 53은 VPC **앞** 띠(+z), 선이 닿는 S3·DynamoDB는 **뒤** 띠(-z), 선이 없는 나머지는 오른쪽 **옆** 트레이
-- 엣지 중간점은 종류마다 다른 높이로 띄운다(`EDGE_LIFT`). 같은 두 앵커를 잇는 명시 엣지와 추론 엣지가 겹치지 않는다
+- 엣지 중간점은 종류마다 다른 높이로 띄운다(`EDGE_LIFT`) + 엣지마다 결정적 높이 변화(`LAYOUT.edgeJitter`, 최대 0.135 < 종류 간격 0.2). 같은 두 앵커를 잇는 명시·추론 엣지가 겹치지 않고, 같은 곳을 지나는 두 호도 같은 평면에 놓이지 않는다
+- **엣지 접힘 2단계**: 스택 접힘이 먼저, 그다음 `edgeFoldThreshold`(기본 3, 1 이하면 비활성) 기준 서브넷 접힘. 한 서브넷의 노드 여럿이 같은 추론 엣지(같은 종류·같은 반대편)를 가지면 그 끝이 서브넷 앵커로 간다. **명시 관계는 접지 않는다.** 원본은 `sourceIds`에 남는다
+- `edgeIndexByElement`(요소 id → `edges` 인덱스)는 접힘을 모르는 렌더러가 선택에 닿는 선을 찾는 유일한 경로다. 접힌 엣지의 `fromId`/`toId`는 클릭된 id와 다를 수 있다
 - **클러스터링**: 서브넷 안 같은 종류가 `clusterThreshold`(기본 24, 0 이하면 비활성)를 넘으면 스택 하나(`${subnetId}:${kind}`). 멤버 앵커는 스택 꼭대기, `clusterOf`로 역참조. 같은 앵커 쌍의 엣지는 하나로 접히고 `sourceIds`에 원본을 남긴다. `expanded`는 UI 상태이며 필터가 아니다
 - 엣지는 `from → mid → to` 두 선분. `mid`는 거리에 비례해 띄운다(0.6~4)
 - `bounds.radius`는 0이 될 수 없다(빈 그래프도 1). 카메라 맞춤이 이 값을 쓴다
@@ -150,7 +152,9 @@ The **data contract** and **pure functions** shared by every source (Live / Fixt
 - Placement: VPCs side by side on X, AZs as X lanes inside a VPC, tiers on Z (public at +z, toward the camera). The grid on a subnet platform is grouped by kind (`NODE_KINDS` order)
 - Subnet-less VPC nodes go to service rows: front (igw, tgw, internet-facing LBs) · middle (internal LBs, endpoints, eks, everything else) · back (rds, elasticache, msk, opensearch). Account-global nodes go to one of three trays (`trays[]`): a band in **front** of the VPCs (+z) for connected CloudFront / Route 53, a band **behind** them (-z) for connected S3 / DynamoDB, and the **side** tray on the right for everything nothing points at
 - **Clustering**: more than `clusterThreshold` (default 24; disabled when <= 0) same-kind nodes in one subnet fold into one stack (`${subnetId}:${kind}`). Members anchor to the stack top and `clusterOf` maps back. Edges sharing an anchor pair fold into one, keeping originals in `sourceIds`. `expanded` is UI state, not filter state
-- An edge is two segments `from → mid → to`; `mid` is lifted in proportion to distance (0.6–4) plus a per-kind offset (`EDGE_LIFT`) so an inferred edge clears the explicit one between the same anchors
+- An edge is two segments `from → mid → to`; `mid` is lifted in proportion to distance (0.6–4), plus a per-kind offset (`EDGE_LIFT`) and a deterministic per-edge variation (`LAYOUT.edgeJitter`, max 0.135, below the 0.2 per-kind step) so neither two kinds between the same anchors nor two arcs crossing the same place share a plane
+- **Edges fold twice**: stacks first, then subnets when `edgeFoldThreshold` (default 3; <= 1 disables) nodes of one subnet share the same inferred edge. **Explicit relationships never fold this way.** Originals stay in `sourceIds`
+- `edgeIndexByElement` (element id → indices into `edges`) is how a renderer that knows nothing about folding finds the lines touching a selection; a folded edge's `fromId` / `toId` need not be the id that was clicked
 - `bounds.radius` is never 0 (an empty graph gives 1); camera fitting relies on it
 - All dimensions live in the single `LAYOUT` constant; the overlap / containment tests in `layout3d.test.ts` catch a bad change
 

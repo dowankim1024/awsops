@@ -294,3 +294,83 @@ describe('computeLayout', () => {
     assertNoOverlap(l);
   });
 });
+
+describe('edge folding onto subnets (ADR-014)', () => {
+  // Three instances in one private subnet, all allowed to reach one database and
+  // all permitted on one bucket — the shape that made the scene unreadable.
+  // 한 서브넷의 인스턴스 셋이 같은 DB·버킷에 닿는 모양. 화면을 못 읽게 만들던 그것.
+  const fanGraph = (): TopologyGraph => {
+    const g = smallGraph();
+    g.nodes.push(node('s3:bucket2', 's3'));
+    ['i-app-00', 'i-app-01', 'i-app-02'].forEach((id) => {
+      g.edges.push(
+        { id: `allows:${id}->rds:db`, from: id, to: 'rds:db', kind: 'allows', meta: { derived: 'sg', ports: ['3306'] } },
+        { id: `permits:${id}->s3:bucket2`, from: id, to: 's3:bucket2', kind: 'permits', meta: { derived: 'iam' } }
+      );
+    });
+    // one lone instance in the public subnet reaches the database too
+    g.edges.push({ id: 'allows:i-bastion-1->rds:db', from: 'i-bastion-1', to: 'rds:db', kind: 'allows', meta: { derived: 'sg' } });
+    return g;
+  };
+
+  it('folds three same-subnet inferred edges into one line from the subnet', () => {
+    // clustering off, so the fold is the edge fold and not the stack fold
+    const l = computeLayout(fanGraph(), { clusterThreshold: 0, edgeFoldThreshold: 3 });
+    const allows = l.edges.filter((e) => e.kind === 'allows' && e.toId === 'rds:db');
+    expect(allows.map((e) => e.fromId).sort()).toEqual(['i-bastion-1', 'sn-prv-a']);
+    const folded = allows.find((e) => e.fromId === 'sn-prv-a')!;
+    expect(folded.sourceIds).toHaveLength(3);
+    expect(l.edges.filter((e) => e.kind === 'permits')).toHaveLength(1);
+  });
+
+  it('leaves explicit relationships per node', () => {
+    const l = computeLayout(fanGraph(), { clusterThreshold: 0, edgeFoldThreshold: 3 });
+    const targets = l.edges.filter((e) => e.kind === 'target');
+    expect(targets).toHaveLength(30); // one per instance, never folded onto the subnet
+    expect(targets.every((e) => e.toId.startsWith('i-'))).toBe(true);
+  });
+
+  it('keeps a group under the threshold as separate lines, and can be disabled', () => {
+    const high = computeLayout(fanGraph(), { clusterThreshold: 0, edgeFoldThreshold: 4 });
+    expect(high.edges.filter((e) => e.kind === 'allows' && e.toId === 'rds:db')).toHaveLength(4);
+    const off = computeLayout(fanGraph(), { clusterThreshold: 0, edgeFoldThreshold: 1 });
+    expect(off.edges.filter((e) => e.kind === 'allows' && e.toId === 'rds:db')).toHaveLength(4);
+  });
+
+  it('indexes a folded edge under every element it stands for', () => {
+    const l = computeLayout(fanGraph(), { clusterThreshold: 0, edgeFoldThreshold: 3 });
+    const idx = (id: string) => l.edgeIndexByElement.get(id) ?? [];
+    const folded = l.edges.findIndex((e) => e.kind === 'allows' && e.fromId === 'sn-prv-a');
+    expect(folded).toBeGreaterThanOrEqual(0);
+    // every member instance finds it, and so does the subnet it folded onto
+    ['i-app-00', 'i-app-01', 'i-app-02', 'sn-prv-a', 'rds:db'].forEach((id) =>
+      expect(idx(id)).toContain(folded)
+    );
+    expect(idx('i-bastion-2')).not.toContain(folded);
+    // indices are sorted and unique
+    l.edgeIndexByElement.forEach((list) => {
+      expect(list).toEqual(Array.from(new Set(list)).sort((a, b) => a - b));
+    });
+  });
+
+  it('finds a clustered member’s edges through the index', () => {
+    const g = fanGraph();
+    const l = computeLayout(g, { clusterThreshold: 24 }); // sn-prv-a holds 30 EC2 -> one stack
+    const stack = l.clusters.find((c) => c.subnetId === 'sn-prv-a' && c.kind === 'ec2')!;
+    expect(stack).toBeDefined();
+    const member = l.edgeIndexByElement.get('i-app-00') ?? [];
+    expect(member.length).toBeGreaterThan(0);
+    member.forEach((i) => {
+      const e = l.edges[i];
+      expect([e.fromId, e.toId]).toContain(stack.id);
+    });
+  });
+
+  it('spreads edge heights deterministically without breaking the per-kind order', () => {
+    const a = computeLayout(fanGraph(), { clusterThreshold: 0 });
+    const b = computeLayout(fanGraph(), { clusterThreshold: 0 });
+    expect(a.edges.map((e) => e.mid.y)).toEqual(b.edges.map((e) => e.mid.y));
+    const heights = new Set(a.edges.filter((e) => e.kind === 'target').map((e) => e.mid.y.toFixed(4)));
+    expect(heights.size).toBeGreaterThan(1); // same kind, same length, still separated
+  });
+});

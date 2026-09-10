@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import {
   Activity,
   ChevronsDownUp,
+  Focus,
   Gauge,
   ListTree,
   Maximize2,
@@ -112,6 +113,7 @@ function Topology3dView() {
   const [showHud, setShowHud] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [flow, setFlow] = useState(false);
+  const [focusEdges, setFocusEdges] = useState(false);
   const [fitNonce, setFitNonce] = useState(0);
   const perf = useMemo(() => createPerfStore(), []);
 
@@ -209,6 +211,14 @@ function Topology3dView() {
             {t('topology3d.toolbar.collapseAll')} ({expanded.size})
           </ToolbarButton>
         )}
+        <ToolbarButton
+          onClick={() => setFocusEdges((v) => !v)}
+          active={focusEdges}
+          title={t(selectedId ? 'topology3d.toolbar.focusHint' : 'topology3d.toolbar.focusHintEmpty')}
+        >
+          <Focus size={13} />
+          {t('topology3d.toolbar.focus')}
+        </ToolbarButton>
         <ToolbarButton onClick={() => setFlow((v) => !v)} active={flow} title={t('topology3d.toolbar.flow')}>
           <Activity size={13} />
           {t('topology3d.toolbar.flow')}
@@ -265,6 +275,7 @@ function Topology3dView() {
               showHud={showHud}
               showLegend={showLegend}
               flow={flow}
+              focusEdges={focusEdges}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-sm text-gray-500">

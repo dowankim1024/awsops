@@ -99,6 +99,9 @@ export interface SceneProps {
   showHud: boolean;
   showLegend: boolean;
   flow: boolean; // edge flow animation (continuous render loop) / 엣지 흐름 애니메이션 (연속 렌더)
+  // Draw only the lines touching the selection. Does nothing until something is
+  // selected. / 선택에 닿는 선만 그린다. 선택이 없으면 아무 효과가 없다.
+  focusEdges: boolean;
 }
 
 export default function Scene({
@@ -111,6 +114,7 @@ export default function Scene({
   showHud,
   showLegend,
   flow,
+  focusEdges,
 }: SceneProps) {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [subnetHoverId, setSubnetHoverId] = useState<string | null>(null);
@@ -133,7 +137,14 @@ export default function Scene({
     };
   }, [hoverId, items]);
 
-  const selectedAnchorId = selectedId ? layout.clusterOf.get(selectedId) ?? selectedId : null;
+  // Which drawn edges touch the selection. The layout keeps this map because an
+  // edge may have been folded onto a stack or a subnet, so its `fromId` / `toId`
+  // is not necessarily the id that was clicked.
+  // 선택에 닿는 엣지. 엣지가 스택·서브넷으로 접혔을 수 있어 레이아웃이 들고 있는 지도를 쓴다.
+  const highlight = useMemo<Set<number> | null>(() => {
+    if (!selectedId) return null;
+    return new Set(layout.edgeIndexByElement.get(selectedId) ?? []);
+  }, [layout, selectedId]);
   const expandable = useMemo(() => new Set(layout.subnets.filter((s) => s.expandable).map((s) => s.id)), [layout.subnets]);
   const frameloop = flow ? 'always' : 'demand';
 
@@ -173,7 +184,7 @@ export default function Scene({
           onSubnetHover={setSubnetHoverId}
         />
         <InstancedNodes layout={layout} selectedId={selectedId} hoverId={hoverId} onHover={setHoverId} onSelect={onSelect} />
-        <Edges edges={layout.edges} selectedId={selectedId} selectedAnchorId={selectedAnchorId} flow={flow} />
+        <Edges edges={layout.edges} highlight={highlight} focus={focusEdges} flow={flow} />
         <Labels labels={layout.labels} hover={hover} nodeCount={layout.stats.drawnNodes + layout.stats.clusters} />
         <PerfProbe store={perf} idleFrameloop={frameloop} />
       </Canvas>

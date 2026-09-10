@@ -21,10 +21,14 @@ import { DEFAULT_TUBE, buildTubes } from './tubes';
 
 export interface EdgesProps {
   edges: PlacedEdge[];
-  selectedId: string | null;
-  // Anchor-level id of the selection (cluster id for a folded member).
-  // 선택의 앵커 id (스택에 숨은 멤버면 클러스터 id).
-  selectedAnchorId: string | null;
+  // Indices into `edges` that touch the selection, or null when nothing is
+  // selected. The layout works this out (`edgeIndexByElement`) because only it
+  // knows how an edge was folded onto its anchors.
+  // 선택에 닿는 엣지 인덱스. 접힘 방식을 아는 것은 레이아웃뿐이라 거기서 온다.
+  highlight: Set<number> | null;
+  // Draw only the highlighted edges instead of dimming the rest.
+  // 나머지를 어둡게 하는 대신 아예 그리지 않는다.
+  focus: boolean;
   flow: boolean; // animate directed edges / 방향 엣지 흐름 애니메이션
 }
 
@@ -97,15 +101,23 @@ diffuseColor.rgb += uFlow * vDir * band * vec3(0.95);`
   return m;
 }
 
-export default function Edges({ edges, selectedId, selectedAnchorId, flow }: EdgesProps) {
+export default function Edges({ edges, highlight, focus, flow }: EdgesProps) {
   const invalidate = useThree((s) => s.invalidate);
+  // Focus mode narrows the geometry itself. With focus off this returns the very
+  // same array, so a selection change repaints colours without rebuilding tubes.
+  // 포커스일 때만 지오메트리를 좁힌다. 꺼져 있으면 같은 배열이라 선택이 바뀌어도 튜브를 다시 만들지 않는다.
+  const focusActive = focus && highlight !== null;
+  const shown = useMemo(
+    () => (focusActive && highlight ? edges.filter((_, i) => highlight.has(i)) : edges),
+    [edges, focusActive, highlight]
+  );
   const colorAttr = useRef<THREE.BufferAttribute | null>(null);
   const uniforms = useMemo<FlowUniforms>(() => ({ uTime: { value: 0 }, uFlow: { value: 0 } }), []);
   const material = useMemo(() => makeMaterial(uniforms), [uniforms]);
   useEffect(() => () => material.dispose(), [material]);
 
   const { geometry, verticesPerEdge } = useMemo(() => {
-    const b = buildTubes(edges, DEFAULT_TUBE);
+    const b = buildTubes(shown, DEFAULT_TUBE);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(b.position, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(b.normal, 3));
@@ -119,7 +131,7 @@ export default function Edges({ edges, selectedId, selectedAnchorId, flow }: Edg
     geo.computeBoundingSphere();
     colorAttr.current = colors;
     return { geometry: geo, verticesPerEdge: b.verticesPerEdge };
-  }, [edges]);
+  }, [shown]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
@@ -128,11 +140,12 @@ export default function Edges({ edges, selectedId, selectedAnchorId, flow }: Edg
     if (!attr) return;
     const c = new THREE.Color();
     const arr = attr.array as Float32Array;
-    const anySelected = Boolean(selectedId);
-    edges.forEach((e, i) => {
-      const touches =
-        anySelected &&
-        (e.fromId === selectedId || e.toId === selectedId || e.fromId === selectedAnchorId || e.toId === selectedAnchorId);
+    const anySelected = highlight !== null;
+    shown.forEach((e, i) => {
+      // In focus mode everything drawn is the selection's own; otherwise `i`
+      // indexes `edges` directly because `shown` is that same array.
+      // 포커스면 그려진 것이 전부 선택의 선이고, 아니면 i가 곧 원본 인덱스다.
+      const touches = focusActive || (highlight?.has(i) ?? false);
       const k = touches ? LIT : anySelected ? FADED : DIM;
       c.set(EDGE_COLORS[e.kind]).multiplyScalar(k);
       const start = i * verticesPerEdge * 3;
@@ -145,7 +158,7 @@ export default function Edges({ edges, selectedId, selectedAnchorId, flow }: Edg
     });
     attr.needsUpdate = true;
     invalidate();
-  }, [edges, verticesPerEdge, selectedId, selectedAnchorId, invalidate]);
+  }, [shown, verticesPerEdge, highlight, focusActive, invalidate]);
 
   useEffect(() => {
     uniforms.uFlow.value = flow ? 1 : 0;
@@ -158,6 +171,6 @@ export default function Edges({ edges, selectedId, selectedAnchorId, flow }: Edg
     if (uniforms.uFlow.value > 0) uniforms.uTime.value = state.clock.elapsedTime;
   });
 
-  if (!edges.length) return null;
+  if (!shown.length) return null;
   return <mesh geometry={geometry} material={material} frustumCulled={false} />;
 }

@@ -6,6 +6,7 @@
 // 순수 3D 레이아웃. 렌더러는 여기서 준 좌표만 그린다. 클러스터링도 레이아웃 책임이다.
 import {
   NODE_KINDS,
+  isDerivedEdgeKind,
   isGlobalKind,
   type EdgeKind,
   type NodeKind,
@@ -34,6 +35,13 @@ export interface LayoutOptions {
   // Subnet ids whose stacks are unfolded. UI state, not part of the filter.
   // 펼친 서브넷. UI 상태이며 필터가 아니다.
   expanded?: Iterable<string>;
+  // How many nodes of one subnet must share the same inferred edge (same kind,
+  // same other end) before that end folds onto the subnet itself. <= 1 disables
+  // it. Default 3. Explicit relationships never fold this way — "which instance
+  // is a target of this ALB" is a per-instance fact.
+  // 한 서브넷의 노드 몇 개가 같은 추론 엣지를 공유하면 서브넷 하나로 접을지. 기본 3. 명시 관계는
+  // 접지 않는다 — "어느 인스턴스가 이 ALB의 타겟인가"는 인스턴스 단위 사실이다.
+  edgeFoldThreshold?: number;
 }
 
 // World-unit constants. Everything else is derived from these.
@@ -54,6 +62,12 @@ export const LAYOUT = {
   platformY: 0.25, // subnet platform thickness / 서브넷 단 두께
   plateY: 0.12, // VPC plate thickness / VPC 바닥판 두께
   clusterMaxHeight: 4, // stack height cap, in node sizes / 스택 최대 높이 (노드 크기 배수)
+  // Deterministic height variation per edge so two arcs crossing the same patch
+  // of sky do not sit in the same plane. Smaller than the smallest EDGE_LIFT
+  // step, so the per-kind ordering still holds.
+  // 엣지마다 조금씩 다른 높이. 같은 곳을 지나는 두 호가 같은 평면에 겹치지 않게 한다.
+  edgeJitter: 0.045,
+  edgeJitterSteps: 4,
 } as const;
 
 export interface VpcBox {
@@ -139,6 +153,17 @@ export interface PlacedEdge {
   sourceIds: string[]; // graph edge ids folded into this one / 이 선으로 접힌 원본 엣지
 }
 
+// 32-bit FNV-1a. Only used to spread edge heights, so any stable hash will do.
+// 엣지 높이를 흩기 위한 안정적 해시.
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
 export type LabelKind = 'vpc' | 'az' | 'subnet' | 'cluster' | 'tray';
 
 export interface PlacedLabel {
@@ -183,6 +208,11 @@ export interface Layout3D {
   anchors: Map<string, Vec3>;
   // node id -> cluster id for members hidden in a stack / 스택에 숨은 노드의 클러스터 id
   clusterOf: Map<string, string>;
+  // Element id (node, clustered member, subnet, VPC) -> indices into `edges`.
+  // Lets the renderer light or isolate everything touching a selection without
+  // knowing how an edge was folded.
+  // 요소 id → `edges` 인덱스. 렌더러가 접힘 방식을 몰라도 선택에 닿는 선을 찾는다.
+  edgeIndexByElement: Map<string, number[]>;
   bounds: LayoutBounds;
   stats: LayoutStats;
 }
@@ -679,26 +709,81 @@ export function computeLayout(g: TopologyGraph, opts: LayoutOptions = {}): Layou
   }
 
   // -- edges folded onto anchors --
+  // Two folds, in order. First the stacks (a member's anchor is its stack top),
+  // then subnets: when several nodes of one subnet share the same inferred edge,
+  // that end moves to the subnet. Twelve instances behind one security-group
+  // rule say the same thing as one line from their subnet, and drawing twelve
+  // is what made the scene unreadable.
+  // 접기는 두 단계다. 스택 접힘이 먼저, 그다음 서브넷 접힘. 한 서브넷의 노드 여럿이 같은 추론
+  // 엣지를 가지면 그 끝을 서브넷으로 옮긴다. SG 규칙 하나 뒤의 인스턴스 12대는 서브넷에서 나가는
+  // 선 하나와 같은 말이고, 12개를 다 그리는 것이 화면을 못 읽게 만들었다.
+  const rawFold = opts.edgeFoldThreshold ?? 3;
+  const foldThreshold = Number.isFinite(rawFold) && rawFold > 1 ? rawFold : Infinity;
+  const anchorOf = (id: string): string => clusterOf.get(id) ?? id;
+
+  // Only individually placed nodes fold; a clustered one already sits on a stack.
+  // 개별로 놓인 노드만 접는다. 스택에 든 노드는 이미 접혀 있다.
+  const subnetOfPlaced = new Map<string, string>();
+  nodes.forEach((n) => {
+    if (n.subnetId) subnetOfPlaced.set(n.id, n.subnetId);
+  });
+
+  const foldGroups = new Map<string, Set<string>>();
+  const groupKey = (side: 'from' | 'to', kind: EdgeKind, subnetId: string, other: string): string =>
+    `${side}|${kind}|${subnetId}|${other}`;
+  const noteFold = (key: string, nodeId: string) => {
+    const hit = foldGroups.get(key);
+    if (hit) hit.add(nodeId);
+    else foldGroups.set(key, new Set([nodeId]));
+  };
+  if (foldThreshold !== Infinity) {
+    for (const e of g.edges) {
+      if (!isDerivedEdgeKind(e.kind) || !anchors.has(e.from) || !anchors.has(e.to)) continue;
+      const fromSubnet = subnetOfPlaced.get(e.from);
+      const toSubnet = subnetOfPlaced.get(e.to);
+      if (fromSubnet) noteFold(groupKey('from', e.kind, fromSubnet, anchorOf(e.to)), e.from);
+      if (toSubnet) noteFold(groupKey('to', e.kind, toSubnet, anchorOf(e.from)), e.to);
+    }
+  }
+  const folds = (side: 'from' | 'to', e: TopologyGraph['edges'][number], subnetId: string | undefined): boolean => {
+    if (!subnetId || !isDerivedEdgeKind(e.kind)) return false;
+    const other = anchorOf(side === 'from' ? e.to : e.from);
+    return (foldGroups.get(groupKey(side, e.kind, subnetId, other))?.size ?? 0) >= foldThreshold;
+  };
+
   const edges: PlacedEdge[] = [];
-  const edgeIndex = new Map<string, PlacedEdge>();
+  const edgeIndex = new Map<string, number>();
+  const refs = new Map<string, Set<number>>();
+  const addRef = (elementId: string, idx: number) => {
+    const hit = refs.get(elementId);
+    if (hit) hit.add(idx);
+    else refs.set(elementId, new Set([idx]));
+  };
+
   for (const e of g.edges) {
-    const from = anchors.get(e.from);
-    const to = anchors.get(e.to);
-    if (!from || !to) continue;
-    const fromId = clusterOf.get(e.from) ?? e.from;
-    const toId = clusterOf.get(e.to) ?? e.to;
+    const fromAnchorId = anchorOf(e.from);
+    const toAnchorId = anchorOf(e.to);
+    const fromId = folds('from', e, subnetOfPlaced.get(e.from)) ? subnetOfPlaced.get(e.from)! : fromAnchorId;
+    const toId = folds('to', e, subnetOfPlaced.get(e.to)) ? subnetOfPlaced.get(e.to)! : toAnchorId;
+    const from = anchors.get(fromId);
+    const to = anchors.get(toId);
+    if (!from || !to || fromId === toId) continue;
+
     const key = `${e.kind}:${fromId}->${toId}`;
-    const existing = edgeIndex.get(key);
-    if (existing) {
-      existing.sourceIds.push(e.id);
+    const existingIdx = edgeIndex.get(key);
+    if (existingIdx !== undefined) {
+      edges[existingIdx].sourceIds.push(e.id);
+      [e.from, e.to, fromAnchorId, toAnchorId, fromId, toId].forEach((id) => addRef(id, existingIdx));
       continue;
     }
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const dz = to.z - from.z;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    const lift = Math.min(4, Math.max(0.6, dist * 0.12)) + (EDGE_LIFT[e.kind] ?? 0);
-    const placed: PlacedEdge = {
+    const jitter = (hash32(key) % LAYOUT.edgeJitterSteps) * LAYOUT.edgeJitter;
+    const lift = Math.min(4, Math.max(0.6, dist * 0.12)) + (EDGE_LIFT[e.kind] ?? 0) + jitter;
+    const idx = edges.length;
+    edges.push({
       id: key,
       kind: e.kind,
       fromId,
@@ -707,10 +792,13 @@ export function computeLayout(g: TopologyGraph, opts: LayoutOptions = {}): Layou
       mid: v3((from.x + to.x) / 2, Math.max(from.y, to.y) + lift, (from.z + to.z) / 2),
       to,
       sourceIds: [e.id],
-    };
-    edgeIndex.set(key, placed);
-    edges.push(placed);
+    });
+    edgeIndex.set(key, idx);
+    [e.from, e.to, fromAnchorId, toAnchorId, fromId, toId].forEach((id) => addRef(id, idx));
   }
+
+  const edgeIndexByElement = new Map<string, number[]>();
+  refs.forEach((set, id) => edgeIndexByElement.set(id, Array.from(set).sort((a, b) => a - b)));
 
   // -- bounds --
   const min = v3(Infinity, Infinity, Infinity);
@@ -749,6 +837,7 @@ export function computeLayout(g: TopologyGraph, opts: LayoutOptions = {}): Layou
     labels,
     anchors,
     clusterOf,
+    edgeIndexByElement,
     bounds: { min, max, center, radius },
     stats: {
       nodes: g.nodes.length,
