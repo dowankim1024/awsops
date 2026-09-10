@@ -3,7 +3,7 @@
 ## 역할
 페이지 전반에 걸쳐 사용되는 공유 React 컴포넌트. 레이아웃, 카드, 차트, 테이블, K8s UI.
 
-## 주요 파일 (17개)
+## 주요 파일 (24개)
 
 ### layout/ — 레이아웃 (3)
 - `layout/Sidebar.tsx` — 메인 네비게이션 (6개 그룹, Bedrock 포함) + Sign Out 버튼 (로고 우측) + AccountSelector + 계정별 기능 필터링
@@ -25,8 +25,10 @@
 - `charts/LineChartCard.tsx` — 라인 차트
 - `charts/PieChartCard.tsx` — 파이 차트
 
-### topology3d/ — 3D 토폴로지 UI (1, Phase 2)
-- `topology3d/SourcePanel.tsx` — Live / Fixture / Generator 소스 전환. 상태는 `@/hooks/useTopologySource`가 소유 (`src/components/topology3d/CLAUDE.md`)
+### topology3d/ — 3D 토폴로지 UI (8, Phase 2–3)
+- `topology3d/SourcePanel.tsx` — Live / Fixture / Generator 소스 전환. 상태는 `@/hooks/useTopologySource`가 소유
+- `topology3d/Scene.tsx` — R3F Canvas 진입점(`dynamic(..., { ssr: false })`로만 로드). `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`를 조립
+- `topology3d/Inspector.tsx` — 선택 요소 상세 (three 미사용). 규칙은 `src/components/topology3d/CLAUDE.md`
 
 ### table/ — 데이터 테이블 (1)
 - `table/DataTable.tsx` — 범용 데이터 테이블 (정렬, render 함수, 멀티어카운트 시 Account 컬럼 자동 추가)
@@ -50,7 +52,7 @@
 ## Role
 Shared React components across pages: layout, cards, charts, tables, K8s UI.
 
-## Key Files (17)
+## Key Files (24)
 
 ### layout/ — Layout (3)
 - `layout/Sidebar.tsx` — Main navigation (6 groups, incl. Bedrock) + Sign Out button (next to logo) + AccountSelector + account feature filtering
@@ -80,6 +82,11 @@ Shared React components across pages: layout, cards, charts, tables, K8s UI.
 
 ### k8s/ — K8s Components (4)
 - `k8s/K9sResourceTable.tsx`, `K9sDetailPanel.tsx`, `K9sClusterHeader.tsx`, `NamespaceFilter.tsx`
+
+### topology3d/ — 3D Topology UI (8, Phase 2–3)
+- `topology3d/SourcePanel.tsx` — Live / Fixture / Generator switch; state owned by `@/hooks/useTopologySource`
+- `topology3d/Scene.tsx` — R3F Canvas entry (loaded only via `dynamic(..., { ssr: false })`); composes `Ground` `InstancedNodes` `Edges` `Labels` `PerfHud`
+- `topology3d/Inspector.tsx` — selection details (no three.js). Rules in `src/components/topology3d/CLAUDE.md`
 
 ## Rules
 - All components use `export default`

@@ -20,7 +20,7 @@ Generator ───── adapters/generator.ts ┘        (types.ts)        (fi
 - `adapters/fixture.ts` — `parseFixture`(검증 후 `meta.source='fixture'` 고정), `BUILT_IN_FIXTURES`, `toFixtureJson`(내보내기, 익명화 선택)
 - `fixtures/` — `plick-prod.json`(익명화, 2 VPC·24 서브넷·390 EC2), `stress-1000.json`(2 VPC·32 서브넷·1,001 EC2). `npm run fixtures:build`로 재생성 (`scripts/build-topology-fixtures.ts`)
 - `__tests__/` — vitest. `fixtures/live-rows.ts`(합성 행), `fixtures/fossflow-expected.json`(Phase 1 이전 생성기 산출물 스냅샷)
-- (Phase 3) `layout3d.ts`
+- `layout3d.ts` — `computeLayout(graph, { clusterThreshold, expanded })` → `Layout3D`(VPC 바닥판, AZ 레인, 티어 띠, 서브넷 단, 노드·스택 좌표, 접힌 엣지, 라벨, 앵커, 바운드, 통계). 순수·결정적. ADR-012
 
 ## 계약 요약
 - **노드 id**: AWS 리소스 id가 있으면 그대로(`i-…`, `nat-…`, `igw-…`, `tgw-attach-…`, `vpce-…`). 없으면 `${kind}:${name}` (`alb:prod-alb`, `rds:prod-db`, `lambda:fn`, `s3:bucket`)
@@ -48,6 +48,15 @@ Generator ───── adapters/generator.ts ┘        (types.ts)        (fi
 - 사설 IP는 두 번째 옥텟만 옮겨 서브넷 CIDR이 VPC CIDR 안에 남게 한다. 공인 IP는 `203.0.113.0/24`로 간다
 - 익명화 후에도 `validateGraph`가 빈 배열이어야 한다 (참조 무결성 유지). 엣지 ID는 끝점에서 다시 만든다
 
+## 3D 레이아웃 (`layout3d.ts`)
+- 렌더러는 좌표를 계산하지 않는다. 위치·크기·라벨·엣지 끝점은 전부 `Layout3D`에서 온다
+- 배치: VPC는 X축으로 나란히, AZ는 VPC 안 X축 레인, 티어는 Z축(퍼블릭이 +z, 카메라 쪽). 서브넷 단 위 격자는 종류 순(`NODE_KINDS`)으로 묶는다
+- 서브넷이 없는 VPC 노드는 서비스 행: 앞(igw, tgw, internet-facing LB) · 중간(internal LB, endpoint, eks, 나머지) · 뒤(rds, elasticache, msk, opensearch). 계정 전역 노드는 오른쪽 트레이
+- **클러스터링**: 서브넷 안 같은 종류가 `clusterThreshold`(기본 24, 0 이하면 비활성)를 넘으면 스택 하나(`${subnetId}:${kind}`). 멤버 앵커는 스택 꼭대기, `clusterOf`로 역참조. 같은 앵커 쌍의 엣지는 하나로 접히고 `sourceIds`에 원본을 남긴다. `expanded`는 UI 상태이며 필터가 아니다
+- 엣지는 `from → mid → to` 두 선분. `mid`는 거리에 비례해 띄운다(0.6~4)
+- `bounds.radius`는 0이 될 수 없다(빈 그래프도 1). 카메라 맞춤이 이 값을 쓴다
+- 치수 상수는 `LAYOUT` 하나에 모아 둔다. 바꾸면 `layout3d.test.ts`의 겹침·포함 테스트가 잡는다
+
 ## 규칙
 - 이 디렉터리의 함수는 **순수**하다. `Date.now()`는 `opts.now`로 주입. 네트워크·fs 접근 금지
 - 새 소스는 어댑터 하나만 추가한다. 렌더러·필터 수정 금지
@@ -71,7 +80,7 @@ The **data contract** and **pure functions** shared by every source (Live / Fixt
 - `adapters/fixture.ts` — `parseFixture` (validates, then pins `meta.source='fixture'`), `BUILT_IN_FIXTURES`, `toFixtureJson` (export, optional anonymization)
 - `fixtures/` — `plick-prod.json` (anonymized; 2 VPC, 24 subnets, 390 EC2) and `stress-1000.json` (2 VPC, 32 subnets, 1,001 EC2). Rebuild with `npm run fixtures:build` (`scripts/build-topology-fixtures.ts`)
 - `__tests__/` — vitest. `fixtures/live-rows.ts` (synthetic rows), `fixtures/fossflow-expected.json` (snapshot from the pre-Phase-1 generator)
-- (Phase 3) `layout3d.ts`
+- `layout3d.ts` — `computeLayout(graph, { clusterThreshold, expanded })` → `Layout3D` (VPC plates, AZ lanes, tier bands, subnet platforms, node / stack positions, folded edges, labels, anchors, bounds, stats). Pure and deterministic. ADR-012
 
 ## Contract summary
 - **Node id**: the AWS resource id when one exists (`i-…`, `nat-…`, `igw-…`, `tgw-attach-…`, `vpce-…`), else `${kind}:${name}` (`alb:prod-alb`, `rds:prod-db`, `lambda:fn`, `s3:bucket`)
@@ -98,6 +107,15 @@ The **data contract** and **pure functions** shared by every source (Live / Fixt
 - Anonymization replaces **identity only**. AWS vocabulary (`m6i.large`, `internet-facing`, `aurora-mysql`, `ap-northeast-2a`, ARN keywords) survives untouched: stand-ins are minted from Name tags, and meta strings only apply stand-ins that already exist
 - A private IP moves only its second octet, so subnet CIDRs stay inside their VPC CIDR; public IPs become `203.0.113.0/24` addresses
 - `validateGraph` must still return an empty array after anonymization (referential integrity). Edge ids are rebuilt from their endpoints
+
+## 3D layout (`layout3d.ts`)
+- The renderer computes no positions; position, size, labels and edge endpoints all come from `Layout3D`
+- Placement: VPCs side by side on X, AZs as X lanes inside a VPC, tiers on Z (public at +z, toward the camera). The grid on a subnet platform is grouped by kind (`NODE_KINDS` order)
+- Subnet-less VPC nodes go to service rows: front (igw, tgw, internet-facing LBs) · middle (internal LBs, endpoints, eks, everything else) · back (rds, elasticache, msk, opensearch). Account-global nodes sit in a tray on the right
+- **Clustering**: more than `clusterThreshold` (default 24; disabled when <= 0) same-kind nodes in one subnet fold into one stack (`${subnetId}:${kind}`). Members anchor to the stack top and `clusterOf` maps back. Edges sharing an anchor pair fold into one, keeping originals in `sourceIds`. `expanded` is UI state, not filter state
+- An edge is two segments `from → mid → to`; `mid` is lifted in proportion to distance (0.6–4)
+- `bounds.radius` is never 0 (an empty graph gives 1); camera fitting relies on it
+- All dimensions live in the single `LAYOUT` constant; the overlap / containment tests in `layout3d.test.ts` catch a bad change
 
 ## Rules
 - Everything here is **pure**. Inject time via `opts.now`. No network or fs access
