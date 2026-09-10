@@ -276,3 +276,135 @@ export const fossflowCases: { label: string; vpc: string; opts: Record<string, b
   },
   { label: 'dev (no route tables)', vpc: B, opts: {} },
 ];
+
+// ---- configuration inference (ADR-014) ----
+// A separate bag so the FossFLOW parity snapshot keeps replaying the original
+// rows: the same account plus the settings the five rules read.
+// 별도 묶음으로 둔다. FossFLOW 동일성 스냅샷은 원본 행을 그대로 다시 돌려야 한다.
+const SG = { alb: 'sg-0alb', web: 'sg-0web', app: 'sg-0app', data: 'sg-0data' };
+const PROFILE = `arn:aws:iam::${ACC}:instance-profile/prod-app`;
+const ROLE_APP = `arn:aws:iam::${ACC}:role/prod-app-role`;
+const ROLE_LAMBDA = `arn:aws:iam::${ACC}:role/prod-fn-role`;
+const MANAGED = 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess';
+
+const sgOf = (id: string): string[] => {
+  if (id.startsWith('i-0web') || id.startsWith('i-0bast')) return [SG.web];
+  return [SG.app];
+};
+
+export const liveInferRows: LiveTopologyRows = {
+  ...liveRows,
+  ec2: liveRows.ec2.map((r) => ({
+    ...r,
+    security_groups: sgOf(String(r.instance_id)).map((GroupId) => ({ GroupId })),
+    iam_instance_profile_arn: String(r.instance_id).startsWith('i-0app') ? PROFILE : null,
+  })),
+  rds: (liveRows.rds || []).map((r) => ({
+    ...r,
+    vpc_security_groups: [{ VpcSecurityGroupId: SG.data, Status: 'active' }],
+  })),
+  elasticache: (liveRows.elasticache || []).map((r) => ({ ...r, security_groups: [{ SecurityGroupId: SG.data }] })),
+  lambdaVpc: (liveRows.lambdaVpc || []).map((r) => ({
+    ...r,
+    vpc_security_group_ids: [SG.app],
+    role: ROLE_LAMBDA,
+  })),
+  vpcEndpoints: (liveRows.vpcEndpoints || []).map((r) => ({
+    ...r,
+    route_table_ids: r.vpc_endpoint_type === 'Gateway' ? ['rtb-0prva'] : [],
+    subnet_ids: r.vpc_endpoint_type === 'Gateway' ? [] : ['subnet-0prv0c'],
+  })),
+  s3: (liveRows.s3 || []).map((r) =>
+    r.name === 'prod-assets'
+      ? {
+          ...r,
+          event_notification_configuration: {
+            LambdaFunctionConfigurations: [
+              { LambdaFunctionArn: `arn:aws:lambda:ap-northeast-2:${ACC}:function:fn-01`, Events: ['s3:ObjectCreated:*'] },
+            ],
+          },
+        }
+      : r
+  ),
+  cloudfront: (liveRows.cloudfront || []).map((r) =>
+    r.id === 'E1AAAAAAAAAAAA'
+      ? {
+          ...r,
+          origins: {
+            Items: [
+              { Id: 'alb', DomainName: 'prod-alb-1.ap-northeast-2.elb.amazonaws.com' },
+              { Id: 'custom', DomainName: 'origin.partner.example.net' },
+            ],
+          },
+        }
+      : r
+  ),
+  route53: [
+    { id: '/hostedzone/Z1', name: 'example.com.', private_zone: false },
+    { id: '/hostedzone/Z2', name: 'internal.', private_zone: true },
+  ],
+
+  sgRules: [
+    { group_id: SG.alb, is_egress: false, referenced_group_id: null, cidr_ipv4: '0.0.0.0/0', from_port: 443, to_port: 443, ip_protocol: 'tcp' },
+    { group_id: SG.web, is_egress: false, referenced_group_id: SG.alb, cidr_ipv4: null, from_port: 80, to_port: 80, ip_protocol: 'tcp' },
+    { group_id: SG.app, is_egress: false, referenced_group_id: SG.web, cidr_ipv4: null, from_port: 8080, to_port: 8080, ip_protocol: 'tcp' },
+    { group_id: SG.data, is_egress: false, referenced_group_id: SG.app, cidr_ipv4: null, from_port: 3306, to_port: 3306, ip_protocol: 'tcp' },
+    { group_id: SG.app, is_egress: false, referenced_group_id: null, cidr_ipv4: '10.0.0.0/24', from_port: 22, to_port: 22, ip_protocol: 'tcp' },
+    { group_id: SG.app, is_egress: true, referenced_group_id: null, cidr_ipv4: '0.0.0.0/0', from_port: -1, to_port: -1, ip_protocol: '-1' },
+  ],
+  instanceProfiles: [{ account_id: ACC, arn: PROFILE, roles: [{ Arn: ROLE_APP, RoleName: 'prod-app-role' }] }],
+  roles: [
+    {
+      arn: ROLE_APP,
+      name: 'prod-app-role',
+      inline_policies_std: [
+        {
+          PolicyName: 'app-data',
+          PolicyDocument: {
+            Version: '2012-10-17',
+            Statement: [
+              { Effect: 'Allow', Action: ['s3:getobject'], Resource: ['arn:aws:s3:::prod-assets/*'] },
+              { Effect: 'Deny', Action: ['s3:deleteobject'], Resource: ['arn:aws:s3:::prod-assets/*'] },
+            ],
+          },
+        },
+      ],
+      attached_policy_arns: [MANAGED],
+    },
+    {
+      arn: ROLE_LAMBDA,
+      name: 'prod-fn-role',
+      inline_policies_std: [
+        {
+          PolicyName: 'fn-tables',
+          PolicyDocument: {
+            Version: '2012-10-17',
+            Statement: [
+              { Effect: 'Allow', Action: ['dynamodb:query'], Resource: [`arn:aws:dynamodb:ap-northeast-2:${ACC}:table/prod-sessions`] },
+            ],
+          },
+        },
+      ],
+      attached_policy_arns: [],
+    },
+  ],
+  policies: [
+    {
+      arn: MANAGED,
+      // A managed policy is almost always a wildcard: a badge on the node, no line.
+      policy_std: { Version: '2012-10-17', Statement: [{ Effect: 'Allow', Action: ['s3:getobject'], Resource: ['*'] }] },
+    },
+  ],
+  eventSourceMappings: [
+    {
+      arn: `arn:aws:dynamodb:ap-northeast-2:${ACC}:table/prod-sessions/stream/2026-01-01T00:00:00.000`,
+      function_arn: `arn:aws:lambda:ap-northeast-2:${ACC}:function:fn-report`,
+      state: 'Enabled',
+    },
+  ],
+  route53Records: [
+    { zone_id: '/hostedzone/Z1', name: 'cdn.example.com.', type: 'A', alias_target: { DNSName: 'd111.cloudfront.net.' }, records: null },
+    { zone_id: '/hostedzone/Z1', name: 'www.example.com.', type: 'CNAME', alias_target: null, records: ['prod-alb-1.ap-northeast-2.elb.amazonaws.com'] },
+    { zone_id: '/hostedzone/Z9', name: 'orphan.example.com.', type: 'A', alias_target: { DNSName: 'd111.cloudfront.net.' }, records: null },
+  ],
+};

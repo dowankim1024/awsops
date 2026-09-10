@@ -14,11 +14,16 @@ import {
   type TopologyFilterPatch,
 } from './filter';
 import {
+  DERIVED_EDGE_KINDS,
+  EDGE_KINDS,
+  EXPLICIT_EDGE_KINDS,
   GLOBAL_KINDS,
   NODE_KINDS,
   TIERS,
+  isEdgeKind,
   isNodeKind,
   isTier,
+  type EdgeKind,
   type NodeKind,
   type Tier,
   type TopologyGraph,
@@ -43,6 +48,7 @@ export interface GraphSummary {
   azs: string[]; // AZs present in the current VPC / 현재 VPC의 AZ
   tiers: Record<Tier, number>; // subnet count per tier in the current VPC / 티어별 서브넷 수
   kinds: Partial<Record<NodeKind, number>>; // node count per kind (current VPC + account-global) / 종류별 노드 수
+  edgeKinds: Partial<Record<EdgeKind, number>>; // edge count per kind, graph-wide / 엣지 종류별 개수
 }
 
 export function summarizeGraph(g: TopologyGraph, f: Pick<TopologyFilter, 'vpcId'>): GraphSummary {
@@ -68,6 +74,11 @@ export function summarizeGraph(g: TopologyGraph, f: Pick<TopologyFilter, 'vpcId'
     kinds[n.kind] = (kinds[n.kind] ?? 0) + 1;
   });
 
+  const edgeKinds: Partial<Record<EdgeKind, number>> = {};
+  g.edges.forEach((e) => {
+    edgeKinds[e.kind] = (edgeKinds[e.kind] ?? 0) + 1;
+  });
+
   return {
     source: g.meta.source,
     accountId: g.meta.accountId,
@@ -82,6 +93,7 @@ export function summarizeGraph(g: TopologyGraph, f: Pick<TopologyFilter, 'vpcId'
     azs: Array.from(azs).sort(),
     tiers,
     kinds,
+    edgeKinds,
   };
 }
 
@@ -111,6 +123,11 @@ export function sanitizeSummary(raw: unknown): GraphSummary {
   Object.entries(k).forEach(([key, v]) => {
     if (isNodeKind(key)) kinds[key] = num(v);
   });
+  const ek = (r.edgeKinds && typeof r.edgeKinds === 'object' ? r.edgeKinds : {}) as Record<string, unknown>;
+  const edgeKinds: Partial<Record<EdgeKind, number>> = {};
+  Object.entries(ek).forEach(([key, v]) => {
+    if (isEdgeKind(key)) edgeKinds[key] = num(v);
+  });
   const source = r.source === 'live' || r.source === 'fixture' || r.source === 'generator' ? r.source : 'fixture';
   const vpcId = typeof r.vpcId === 'string' && vpcs.some((v) => v.id === r.vpcId) ? r.vpcId : vpcs[0]?.id ?? null;
   return {
@@ -121,6 +138,7 @@ export function sanitizeSummary(raw: unknown): GraphSummary {
     azs,
     tiers: { public: num(t.public), private: num(t.private) },
     kinds,
+    edgeKinds,
   };
 }
 
@@ -156,6 +174,19 @@ export const SET_FILTER_TOOL = {
           properties: Object.fromEntries(NODE_KINDS.map((k) => [k, { type: 'boolean' }])),
           additionalProperties: false,
         },
+        edgeKinds: {
+          type: 'object',
+          description:
+            'Show (true) or hide (false) kinds of connection line. Explicit AWS relationships: ' +
+            `${EXPLICIT_EDGE_KINDS.join(', ')}. Paths inferred from configuration: ${DERIVED_EDGE_KINDS.join(', ')}.`,
+          properties: Object.fromEntries(EDGE_KINDS.map((k) => [k, { type: 'boolean' }])),
+          additionalProperties: false,
+        },
+        showConnectedGlobals: {
+          type: 'boolean',
+          description:
+            'true keeps an account-global resource (S3, DynamoDB, CloudFront, Route 53) on screen when a visible line reaches it, even while its kind is hidden.',
+        },
         azs: {
           type: ['array', 'null'],
           items: { type: 'string' },
@@ -187,8 +218,10 @@ function describeFilter(f: TopologyFilter): string {
     `tiers hidden: ${hiddenTiers.length ? hiddenTiers.join(', ') : 'none'}`,
     `kinds visible: ${visibleKinds.join(', ') || 'none'}`,
     `kinds hidden: ${hiddenKinds.join(', ') || 'none'}`,
+    `edge kinds hidden: ${EDGE_KINDS.filter((k) => !f.edgeKinds[k]).join(', ') || 'none'}`,
     `azs: ${f.azs ? f.azs.join(', ') : 'all'}`,
     `includeEmptySubnets: ${f.includeEmptySubnets}`,
+    `showConnectedGlobals: ${f.showConnectedGlobals}`,
     `query: ${f.query ? JSON.stringify(f.query) : '(none)'}`,
   ].join('\n');
 }
@@ -211,6 +244,12 @@ export function buildSystemPrompt(summary: GraphSummary, filter: TopologyFilter,
       .map(([k, n]) => `${k}=${n}`)
       .join(', ') || '(none)';
 
+  const edgeLines =
+    Object.entries(summary.edgeKinds)
+      .filter(([, n]) => (n ?? 0) > 0)
+      .map(([k, n]) => `${k}=${n}`)
+      .join(', ') || '(none)';
+
   return `You are the filter assistant for the AWSops 3D topology view. The user looks at one VPC of an AWS account rendered in 3D (VPC plates → AZ lanes → public/private subnet tiers → resource nodes; account-global resources sit in a tray beside the VPC). You cannot draw or edit anything; the only thing you control is the view FILTER, through the ${SET_FILTER_TOOL_NAME} tool.
 
 DATA SOURCE: ${summary.source}${summary.accountId ? ` (account ${summary.accountId})` : ''}
@@ -222,6 +261,8 @@ AVAILABLE AZS (current VPC): ${summary.azs.length ? summary.azs.join(', ') : '(n
 SUBNETS BY TIER (current VPC): public=${summary.tiers.public}, private=${summary.tiers.private}
 NODES BY KIND (current VPC + account-global): ${kindLines}
 ALL KINDS: ${NODE_KINDS.join(', ')} (account-global, hidden by default: ${GLOBAL_KINDS.join(', ')})
+EDGES BY KIND (whole graph): ${edgeLines}
+EDGE KINDS: explicit AWS relationships ${EXPLICIT_EDGE_KINDS.join(', ')}; paths inferred from configuration (drawn dashed) ${DERIVED_EDGE_KINDS.join(', ')} — allows = a security group opens the path, permits = an IAM role allows the data access, endpoint = a VPC endpoint carries it, triggers = an event invokes a Lambda, origin = CloudFront / Route 53 points at it. An inferred edge is a permitted path, never observed traffic.
 
 CURRENT FILTER:
 ${describeFilter(filter)}
@@ -229,7 +270,9 @@ ${describeFilter(filter)}
 RULES:
 - When the user wants to see, hide, isolate, focus, search or switch something, call ${SET_FILTER_TOOL_NAME} with ONLY the fields that change, then reply with one short sentence saying what changed.
 - "only X" / "just X" means: set X true and every currently visible kind that is not X to false. "also X" means: set X true and leave the rest.
-- "show everything" / "reset" means: every tier true, every kind true except the account-global ones (${GLOBAL_KINDS.join(', ')}), azs null, query "".
+- "show everything" / "reset" means: every tier true, every kind true except the account-global ones (${GLOBAL_KINDS.join(', ')}), every edge kind true, azs null, query "".
+- To show what reaches a data service ("show the flow to S3", "how does traffic get to the database"), turn the relevant edge kinds on rather than naming resources: S3 / DynamoDB access is permits and endpoint, network paths are allows, CDN and DNS are origin. An account-global resource appears on its own once a visible line reaches it (showConnectedGlobals), so it rarely needs its kind turned on.
+- To simplify a crowded scene, hide inferred edge kinds (${DERIVED_EDGE_KINDS.join(', ')}) before hiding resources.
 - AZ names must be the full names listed above ("2a" or "a" refers to the AZ that ends with "a").
 - Refer to VPCs by id from the list; if the user names a VPC that is not listed, say so and do not call the tool.
 - For a question ("how many EC2 are there?", "what is a NAT gateway?") answer from the numbers above in plain text without calling the tool. Never invent counts.
@@ -334,6 +377,22 @@ export function sanitizePatch(raw: unknown, summary: GraphSummary): SanitizedPat
     } else rejected.push('kinds: not an object');
   }
 
+  if (r.edgeKinds !== undefined) {
+    if (r.edgeKinds && typeof r.edgeKinds === 'object') {
+      const edgeKinds: Partial<Record<EdgeKind, boolean>> = {};
+      for (const [k, v] of Object.entries(r.edgeKinds)) {
+        if (isEdgeKind(k) && typeof v === 'boolean') edgeKinds[k] = v;
+        else rejected.push(`edgeKinds.${k}`);
+      }
+      if (Object.keys(edgeKinds).length) patch.edgeKinds = edgeKinds;
+    } else rejected.push('edgeKinds: not an object');
+  }
+
+  if (r.showConnectedGlobals !== undefined) {
+    if (typeof r.showConnectedGlobals === 'boolean') patch.showConnectedGlobals = r.showConnectedGlobals;
+    else rejected.push('showConnectedGlobals: not a boolean');
+  }
+
   if (r.azs !== undefined) {
     if (r.azs === null) patch.azs = null;
     else if (Array.isArray(r.azs)) {
@@ -373,6 +432,8 @@ export function sanitizeFilter(raw: unknown): TopologyFilter {
   if (r.vpcId === null || typeof r.vpcId === 'string') patch.vpcId = r.vpcId as string | null;
   if (r.tiers && typeof r.tiers === 'object') patch.tiers = r.tiers as Partial<Record<Tier, boolean>>;
   if (r.kinds && typeof r.kinds === 'object') patch.kinds = r.kinds as Partial<Record<NodeKind, boolean>>;
+  if (r.edgeKinds && typeof r.edgeKinds === 'object') patch.edgeKinds = r.edgeKinds as Partial<Record<EdgeKind, boolean>>;
+  if (typeof r.showConnectedGlobals === 'boolean') patch.showConnectedGlobals = r.showConnectedGlobals;
   if (r.azs === null) patch.azs = null;
   else if (Array.isArray(r.azs)) patch.azs = r.azs.filter((a): a is string => typeof a === 'string');
   if (typeof r.includeEmptySubnets === 'boolean') patch.includeEmptySubnets = r.includeEmptySubnets;
@@ -486,8 +547,10 @@ export type FilterChange =
   | { field: 'vpcId'; value: string | null }
   | { field: 'tiers'; key: Tier; value: boolean }
   | { field: 'kinds'; key: NodeKind; value: boolean }
+  | { field: 'edgeKinds'; key: EdgeKind; value: boolean }
   | { field: 'azs'; value: string[] | null }
   | { field: 'includeEmptySubnets'; value: boolean }
+  | { field: 'showConnectedGlobals'; value: boolean }
   | { field: 'query'; value: string };
 
 export function diffFilter(before: TopologyFilter, after: TopologyFilter): FilterChange[] {
@@ -499,11 +562,19 @@ export function diffFilter(before: TopologyFilter, after: TopologyFilter): Filte
   NODE_KINDS.forEach((k) => {
     if (before.kinds[k] !== after.kinds[k]) out.push({ field: 'kinds', key: k, value: after.kinds[k] });
   });
+  EDGE_KINDS.forEach((k) => {
+    if (before.edgeKinds[k] !== after.edgeKinds[k]) {
+      out.push({ field: 'edgeKinds', key: k, value: after.edgeKinds[k] });
+    }
+  });
   const azA = before.azs ? [...before.azs].sort().join(',') : null;
   const azB = after.azs ? [...after.azs].sort().join(',') : null;
   if (azA !== azB) out.push({ field: 'azs', value: after.azs });
   if (before.includeEmptySubnets !== after.includeEmptySubnets) {
     out.push({ field: 'includeEmptySubnets', value: after.includeEmptySubnets });
+  }
+  if (before.showConnectedGlobals !== after.showConnectedGlobals) {
+    out.push({ field: 'showConnectedGlobals', value: after.showConnectedGlobals });
   }
   if (before.query !== after.query) out.push({ field: 'query', value: after.query });
   return out;

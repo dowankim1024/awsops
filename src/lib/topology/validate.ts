@@ -3,6 +3,7 @@
 // tests on adapter output. No throwing: callers decide how strict to be.
 // TopologyGraph 구조·참조 검증. 빈 배열이면 유효. 픽스처 업로드와 어댑터 테스트에서 사용.
 import {
+  isDerivedSource,
   isEdgeKind,
   isNodeKind,
   isTier,
@@ -76,6 +77,12 @@ export function validateGraph(g: unknown): string[] {
     if (!isEdgeKind(e.kind)) issues.push(`edges[${i}] (${e.id}) unknown kind ${String(e.kind)}`);
     if (!elementIds.has(String(e.from))) issues.push(`edges[${i}] (${e.id}) from ${e.from} not found`);
     if (!elementIds.has(String(e.to))) issues.push(`edges[${i}] (${e.id}) to ${e.to} not found`);
+    if (e.meta !== undefined) {
+      if (!isObj(e.meta)) issues.push(`edges[${i}] (${e.id}) meta must be an object`);
+      else if (e.meta.derived !== undefined && !isDerivedSource(e.meta.derived)) {
+        issues.push(`edges[${i}] (${e.id}) unknown meta.derived ${String(e.meta.derived)}`);
+      }
+    }
   });
 
   return issues;

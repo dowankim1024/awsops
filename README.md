@@ -9,6 +9,7 @@
 
 - 수백~수천 대 규모의 VPC / 서브넷 / EC2 / ALB / RDS … 를 **React Three Fiber**로 3D 렌더링 (종류별 InstancedMesh, 60fps 목표)
 - **체크박스, URL 파라미터, 자연어 채팅** 세 경로가 하나의 `TopologyFilter`를 조작 — "퍼블릭 서브넷이랑 람다는 빼고 a존만" → 필터 패치
+- **설정 추론 흐름**: 보안그룹·IAM·VPC 엔드포인트·이벤트·DNS 설정에서 요청이 지나갈 수 있는 길을 뽑아 점선으로 잇는다. Route 53 → CloudFront → ALB → EC2 → 내부 ALB → EC2 → RDS·S3까지 한 화면에서 이어진다 (읽기 전용 조회만, 관측 트래픽 아님)
 - **Live / Fixture / Generator** 세 데이터 소스. 자격증명 없이도 열리고, 시드 기반 생성기로 규모 테스트
 - 그 아래에는 업스트림의 대시보드(EC2, VPC, RDS, S3, IAM, Cost, CIS 컴플라이언스 등 38 페이지)가 그대로 동작
 
@@ -23,8 +24,8 @@
 
 Steampipe rows ─┐
 Fixture JSON ───┼─► 어댑터 ─► TopologyGraph ─► applyFilter ─► layout3d ─► R3F Scene
-Generator(seed)─┘                               ▲
-                     FilterPanel · URL params · Chat(Bedrock → filter patch)
+Generator(seed)─┘        └ inferEdges          ▲
+                        (설정 추론 5종)  FilterPanel · URL params · Chat(Bedrock → filter patch)
 ```
 
 ALB, Cognito, CloudFront, AgentCore는 쓰지 않는다. AI는 Bedrock 직접 호출(토폴로지 채팅, AI 종합 진단)뿐이다.
@@ -112,6 +113,7 @@ awsops/
 
 - Renders VPCs / subnets / EC2 / ALB / RDS … at hundreds-to-thousands scale with **React Three Fiber** (per-kind InstancedMesh, 60fps target)
 - **Checkboxes, URL params, and natural-language chat** all drive one `TopologyFilter` — "hide public subnets and lambdas, show only AZ a" becomes a filter patch
+- **Flows inferred from configuration**: security groups, IAM, VPC endpoints, event sources and DNS become dashed lines, so Route 53 → CloudFront → ALB → EC2 → internal ALB → EC2 → RDS / S3 connects end to end (read-only calls; a permitted path, not observed traffic)
 - **Live / Fixture / Generator** data sources: opens without credentials, seeded generator for scale tests
 - The upstream dashboard (EC2, VPC, RDS, S3, IAM, Cost, CIS compliance, 38 pages) keeps working underneath
 

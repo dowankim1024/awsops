@@ -218,3 +218,97 @@ describe('anonymizeGraph on generated data', () => {
     expect(collide.every((id) => id.includes(':'))).toBe(true);
   });
 });
+
+describe('anonymizeGraph: inferred flows (ADR-014)', () => {
+  const source: TopologyGraph = {
+    meta: { source: 'live', accountId: ACCOUNT, generatedAt: '2026-01-01T00:00:00.000Z' },
+    vpcs: [{ id: 'vpc-0aaa1111bbbb2222c', name: `${BRAND}-prod-vpc`, cidr: '10.42.0.0/16' }],
+    subnets: [
+      {
+        id: 'subnet-0111aaaa2222bbbb3',
+        vpcId: 'vpc-0aaa1111bbbb2222c',
+        az: 'ap-northeast-2a',
+        cidr: '10.42.1.0/24',
+        tier: 'private',
+        name: `${BRAND}-private-a`,
+      },
+    ],
+    nodes: [
+      {
+        id: 'i-0abcdef0123456789',
+        kind: 'ec2',
+        name: `${BRAND}-api-01`,
+        vpcId: 'vpc-0aaa1111bbbb2222c',
+        subnetId: 'subnet-0111aaaa2222bbbb3',
+        az: 'ap-northeast-2a',
+        meta: {
+          nameTag: `${BRAND}-api-01`,
+          securityGroups: ['sg-0aaa1111bbbb2222c'],
+          roleArn: `arn:aws:iam::${ACCOUNT}:role/${BRAND}-api-role`,
+          iamWildcard: true,
+        },
+      },
+      {
+        id: `s3:${BRAND}-assets`,
+        kind: 's3',
+        name: `${BRAND}-assets`,
+        meta: { region: 'ap-northeast-2', domain: `${BRAND}-assets.s3.ap-northeast-2.amazonaws.com` },
+      },
+    ],
+    edges: [
+      {
+        id: `permits:i-0abcdef0123456789->s3:${BRAND}-assets`,
+        from: 'i-0abcdef0123456789',
+        to: `s3:${BRAND}-assets`,
+        kind: 'permits',
+        meta: {
+          derived: 'iam',
+          actions: ['s3:GetObject', 's3:PutObject'],
+          roleArn: `arn:aws:iam::${ACCOUNT}:role/${BRAND}-api-role`,
+        },
+      },
+      {
+        id: 'allows:subnet-0111aaaa2222bbbb3->i-0abcdef0123456789',
+        from: 'subnet-0111aaaa2222bbbb3',
+        to: 'i-0abcdef0123456789',
+        kind: 'allows',
+        meta: { derived: 'sg', ports: ['3306', '6379'], protocol: 'tcp' },
+      },
+    ],
+  };
+
+  const out = anonymizeGraph(source, { seed: 7 });
+  const json = JSON.stringify(out);
+
+  it('keeps the graph valid and the edges attached', () => {
+    expect(validateGraph(out)).toEqual([]);
+    expect(out.edges).toHaveLength(2);
+    out.edges.forEach((e) => {
+      const ids = [...out.nodes.map((n) => n.id), ...out.subnets.map((s) => s.id)];
+      expect(ids).toContain(e.from);
+      expect(ids).toContain(e.to);
+    });
+  });
+
+  it('replaces the security group id, the account id and the brand everywhere', () => {
+    expect(out.nodes[0].meta.securityGroups).not.toEqual(['sg-0aaa1111bbbb2222c']);
+    expect(String((out.nodes[0].meta.securityGroups as string[])[0])).toMatch(/^sg-0[0-9a-f]{16}$/);
+    expect(json).not.toContain(ACCOUNT);
+    expect(json).not.toContain(BRAND);
+    expect(String(out.edges[0].meta?.roleArn)).toContain(`arn:aws:iam::${out.meta.accountId}:role/`);
+  });
+
+  it('leaves AWS vocabulary alone: actions, ports, protocol, derived source', () => {
+    expect(out.edges[0].meta?.actions).toEqual(['s3:GetObject', 's3:PutObject']);
+    expect(out.edges[0].meta?.derived).toBe('iam');
+    expect(out.edges[1].meta?.ports).toEqual(['3306', '6379']);
+    expect(out.edges[1].meta?.protocol).toBe('tcp');
+    expect(out.nodes[0].meta.iamWildcard).toBe(true);
+  });
+
+  it('rewrites the bucket domain to match the anonymized bucket name', () => {
+    const bucket = out.nodes.find((n) => n.kind === 's3')!;
+    expect(String(bucket.meta.domain)).toBe(`${bucket.name}.s3.ap-northeast-2.amazonaws.com`);
+    expect(bucket.id).toBe(`s3:${bucket.name}`);
+  });
+});

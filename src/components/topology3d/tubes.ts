@@ -5,7 +5,12 @@
 // 모든 엣지를 하나의 튜브 지오메트리로. 엣지마다 2차 베지어(시작→띄운 중간→끝)를 링으로 샘플링해
 // 둥글고 매끈하며 두께가 있는 선을 만든다. three 미사용, 순수 typed array.
 import { type PlacedEdge, type Vec3 } from '@/lib/topology/layout3d';
-import { type EdgeKind } from '@/lib/topology/types';
+import {
+  DERIVED_EDGE_KINDS,
+  EXPLICIT_EDGE_KINDS,
+  isDerivedEdgeKind,
+  type EdgeKind,
+} from '@/lib/topology/types';
 
 export interface TubeOptions {
   radius: number; // world units / 월드 단위
@@ -16,8 +21,17 @@ export interface TubeOptions {
 export const DEFAULT_TUBE: TubeOptions = { radius: 0.04, segments: 10, radial: 6 };
 
 // Edge kinds that carry a direction from → to (used for the flow animation).
-// from → to 방향이 있는 엣지 종류 (흐름 애니메이션용).
-export const DIRECTED_KINDS: readonly EdgeKind[] = ['target', 'route', 'egress'];
+// `attach` is the only symmetric one: a gateway and its VPC are just joined.
+// from → to 방향이 있는 엣지 종류. attach만 방향이 없다.
+export const DIRECTED_KINDS: readonly EdgeKind[] = [
+  ...EXPLICIT_EDGE_KINDS.filter((k) => k !== 'attach'),
+  ...DERIVED_EDGE_KINDS,
+];
+
+// Dash length in world units for inferred edges. Measured along the curve, so a
+// long arc and a short one get dashes of the same size.
+// 추론 엣지 점선의 월드 단위 길이. 곡선 길이로 재므로 어디서나 대시 크기가 같다.
+export const DASH_WORLD = 0.5;
 
 export interface TubeBuffers {
   position: Float32Array;
@@ -26,6 +40,12 @@ export interface TubeBuffers {
   t: Float32Array;
   // 1 for directed edges, 0 otherwise. / 방향 엣지면 1.
   dir: Float32Array;
+  // Arc length so far divided by DASH_WORLD; the dash mask takes its fract().
+  // 지금까지의 곡선 길이 / DASH_WORLD. 점선 마스크가 fract()를 쓴다.
+  dash: Float32Array;
+  // 1 for configuration-inferred edges (drawn dashed), 0 otherwise.
+  // 설정 추론 엣지면 1 (점선으로 그린다).
+  derived: Float32Array;
   index: Uint32Array;
   vertexCount: number;
   verticesPerEdge: number;
@@ -72,6 +92,8 @@ export function buildTubes(edges: PlacedEdge[], opts: TubeOptions = DEFAULT_TUBE
   const normal = new Float32Array(vertexCount * 3);
   const t = new Float32Array(vertexCount);
   const dir = new Float32Array(vertexCount);
+  const dash = new Float32Array(vertexCount);
+  const derived = new Float32Array(vertexCount);
   const index = new Uint32Array(edges.length * opts.segments * opts.radial * 6);
 
   const p: Vec3 = { x: 0, y: 0, z: 0 };
@@ -80,15 +102,22 @@ export function buildTubes(edges: PlacedEdge[], opts: TubeOptions = DEFAULT_TUBE
   const n2: Vec3 = { x: 0, y: 0, z: 0 };
   const up: Vec3 = { x: 0, y: 1, z: 0 };
   const side: Vec3 = { x: 1, y: 0, z: 0 };
+  const prev: Vec3 = { x: 0, y: 0, z: 0 };
 
   let vi = 0;
   let ii = 0;
   edges.forEach((e, ei) => {
     const directed = DIRECTED_KINDS.includes(e.kind) ? 1 : 0;
+    const isDerived = isDerivedEdgeKind(e.kind) ? 1 : 0;
     const base = ei * verticesPerEdge;
+    let arc = 0;
     for (let r = 0; r < rings; r += 1) {
       const s = r / opts.segments;
       bezier(e.from, e.mid, e.to, s, p);
+      if (r > 0) arc += Math.hypot(p.x - prev.x, p.y - prev.y, p.z - prev.z);
+      prev.x = p.x;
+      prev.y = p.y;
+      prev.z = p.z;
       normalize(bezierTangent(e.from, e.mid, e.to, s, tan));
       // Frame: n1 ⟂ tangent, preferring "up" so rings stay consistent along the arc.
       // 프레임: 접선에 수직, 위 방향을 우선해 링이 호를 따라 일정하게.
@@ -110,6 +139,8 @@ export function buildTubes(edges: PlacedEdge[], opts: TubeOptions = DEFAULT_TUBE
         normal[vi * 3 + 2] = nz;
         t[vi] = s;
         dir[vi] = directed;
+        dash[vi] = arc / DASH_WORLD;
+        derived[vi] = isDerived;
         vi += 1;
       }
     }
@@ -130,5 +161,5 @@ export function buildTubes(edges: PlacedEdge[], opts: TubeOptions = DEFAULT_TUBE
     }
   });
 
-  return { position, normal, t, dir, index, vertexCount, verticesPerEdge };
+  return { position, normal, t, dir, dash, derived, index, vertexCount, verticesPerEdge };
 }

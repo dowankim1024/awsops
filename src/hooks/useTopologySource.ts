@@ -7,7 +7,7 @@
 // 렌더러는 어느 소스인지 알 필요가 없다.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { queries as relQ } from '@/lib/queries/relationships';
+import { iamPoliciesQuery, iamRolesQuery, queries as relQ } from '@/lib/queries/relationships';
 import {
   BUILT_IN_FIXTURES,
   findFixture,
@@ -20,7 +20,12 @@ import {
   generateGraph,
   normalizeParams,
 } from '@/lib/topology/adapters/generator';
-import { toTopologyGraph, type LiveTopologyRows } from '@/lib/topology/adapters/live';
+import {
+  attachedPolicyArns,
+  toTopologyGraph,
+  usedRoleArns,
+  type LiveTopologyRows,
+} from '@/lib/topology/adapters/live';
 import { type TopologyGraph, type TopologySource } from '@/lib/topology/types';
 
 export type PresetName = keyof typeof PRESETS;
@@ -74,6 +79,12 @@ const LIVE_QUERIES = {
   dynamodb: relQ.dynamodbTables,
   cloudfront: relQ.cloudfrontDists,
   route53: relQ.route53Zones,
+  // Configuration inference (ADR-014). Read-only Describe/List/Get like the rest.
+  // 설정 추론용. 나머지와 같은 읽기 전용 조회다.
+  sgRules: relQ.sgRules,
+  instanceProfiles: relQ.instanceProfiles,
+  eventSourceMappings: relQ.eventSourceMappings,
+  route53Records: relQ.route53Records,
 };
 
 const rowsOf = (data: Record<string, { rows?: unknown[] }>): LiveTopologyRows =>
@@ -154,14 +165,41 @@ export function useTopologySource(opts: UseTopologySourceOptions = {}): Topology
 
       setLoading(true);
       try {
-        const res = await fetch(bustCache ? '/api/steampipe?bustCache=true' : '/api/steampipe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accountId, queries: LIVE_QUERIES }),
-        });
-        if (!res.ok) throw new Error(`/api/steampipe returned ${res.status}`);
-        const data = await res.json();
-        commit(() => setGraph(toTopologyGraph(rowsOf(data), { accountId })));
+        const run = async (queries: Record<string, string>): Promise<Record<string, { rows?: unknown[] }>> => {
+          const res = await fetch(bustCache ? '/api/steampipe?bustCache=true' : '/api/steampipe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accountId, queries }),
+          });
+          if (!res.ok) throw new Error(`/api/steampipe returned ${res.status}`);
+          return res.json();
+        };
+
+        const rows = rowsOf(await run(LIVE_QUERIES));
+
+        // IAM is fetched in two extra passes, each narrowed by the ARNs the pass
+        // before it found: the roles resources actually use, then the managed
+        // policies those roles attach. Reading every role in an account is one
+        // API call per role, which is exactly what we are avoiding. A failure
+        // here is not fatal — the graph simply loses its `permits` edges.
+        // IAM은 앞 단계가 찾은 ARN으로 좁혀 두 번 더 조회한다. 실패해도 permits 엣지만 빠진다.
+        try {
+          const rolesSql = iamRolesQuery(usedRoleArns(rows));
+          if (rolesSql) {
+            const roleData = await run({ roles: rolesSql });
+            rows.roles = (roleData.roles?.rows ?? []) as Record<string, unknown>[];
+            const policiesSql = iamPoliciesQuery(attachedPolicyArns(rows.roles));
+            if (policiesSql) {
+              const policyData = await run({ policies: policiesSql });
+              rows.policies = (policyData.policies?.rows ?? []) as Record<string, unknown>[];
+            }
+          }
+        } catch {
+          // Keep the graph; only the IAM-derived edges are missing.
+          // 그래프는 그대로 두고 IAM 추론 엣지만 포기한다.
+        }
+
+        commit(() => setGraph(toTopologyGraph(rows, { accountId })));
       } catch (e) {
         commit(() => {
           setGraph(null);

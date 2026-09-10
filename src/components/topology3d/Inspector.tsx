@@ -9,9 +9,16 @@ import { ChevronsDownUp, ChevronsUpDown, ExternalLink, X } from 'lucide-react';
 
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { type Layout3D } from '@/lib/topology/layout3d';
-import { NODE_KINDS, type NodeKind, type TopologyGraph, type TopologyNode } from '@/lib/topology/types';
+import {
+  NODE_KINDS,
+  isDerivedEdgeKind,
+  type NodeKind,
+  type TopologyEdge,
+  type TopologyGraph,
+  type TopologyNode,
+} from '@/lib/topology/types';
 
-import { KIND_COLORS } from './colors';
+import { EDGE_COLORS, KIND_COLORS } from './colors';
 
 // Where "detail page" goes per kind. Network-ish kinds land on the VPC page.
 // 종류별 상세 페이지. 네트워크 계열은 VPC 페이지로.
@@ -36,7 +43,22 @@ const DETAIL_PAGES: Record<NodeKind, string> = {
 };
 
 const MEMBER_PREVIEW = 20;
-const EDGE_PREVIEW = 8;
+const EDGE_PREVIEW = 20;
+
+// What an edge adds beyond "A → B": ports for a security-group path, IAM actions
+// for a data grant. Kept short — the full list lives in the edge itself.
+// 엣지가 덧붙이는 정보. SG 경로는 포트, IAM 허용은 액션. 짧게 자른다.
+const edgeDetail = (e: TopologyEdge): string => {
+  const bits: string[] = [];
+  if (e.meta?.ports?.length) bits.push(e.meta.ports.slice(0, 4).join(','));
+  if (e.meta?.actions?.length) {
+    const actions = e.meta.actions.slice(0, 2).map((a) => a.split(':')[1] ?? a);
+    bits.push(actions.join(','));
+  }
+  if (e.meta?.disabled) bits.push('disabled');
+  if (!bits.length && e.label) bits.push(e.label);
+  return bits.join(' · ');
+};
 
 export interface InspectorProps {
   graph: TopologyGraph | null; // the filtered graph on screen / 화면에 보이는 필터된 그래프
@@ -167,16 +189,29 @@ export default function Inspector({ graph, layout, selectedId, onSelect, onToggl
             <p className="text-xs text-gray-500 mb-1">
               {t('topology3d.inspector.edges')} · {edges.length}
             </p>
-            <ul className="space-y-0.5">
+            <ul className="space-y-0.5 max-h-64 overflow-y-auto">
               {edges.slice(0, EDGE_PREVIEW).map((e) => {
                 const other = e.from === node.id ? e.to : e.from;
+                const detail = edgeDetail(e);
                 return (
-                  <li key={e.id} className="text-xs font-mono text-gray-300 flex gap-2">
-                    <span className="text-gray-500 w-12 shrink-0">{e.kind}</span>
+                  <li key={e.id} className="text-xs font-mono text-gray-300 flex items-center gap-2">
+                    {/* A dashed badge marks a path inferred from configuration. / 점선 배지는 설정 추론. */}
+                    <span
+                      className="w-14 shrink-0 rounded px-1 text-[10px] leading-4 text-center"
+                      style={{
+                        color: EDGE_COLORS[e.kind],
+                        backgroundColor: `${EDGE_COLORS[e.kind]}1f`,
+                        border: isDerivedEdgeKind(e.kind) ? `1px dashed ${EDGE_COLORS[e.kind]}66` : '1px solid transparent',
+                      }}
+                      title={isDerivedEdgeKind(e.kind) ? t('topology3d.inspector.derivedEdge') : undefined}
+                    >
+                      {e.kind}
+                    </span>
                     <button type="button" className="text-left hover:text-accent-cyan truncate" onClick={() => onSelect(other)}>
                       {e.from === node.id ? '→ ' : '← '}
                       {nodeName(other)}
                     </button>
+                    {detail && <span className="shrink-0 text-[10px] text-gray-500">{detail}</span>}
                   </li>
                 );
               })}

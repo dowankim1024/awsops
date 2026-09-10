@@ -118,16 +118,16 @@ export default function Ground({ layout, selectedId, hoverId, onSubnetClick, onS
       size: [v.size.x, LAYOUT.plateY, v.size.z],
       color: GROUND_COLORS.vpc,
     }));
-    if (layout.tray) {
+    layout.trays.forEach((t) => {
       list.push({
-        id: 'tray',
-        center: layout.tray.center,
-        size: [layout.tray.size.x, LAYOUT.plateY, layout.tray.size.z],
+        id: t.id,
+        center: t.center,
+        size: [t.size.x, LAYOUT.plateY, t.size.z],
         color: GROUND_COLORS.tray,
       });
-    }
+    });
     return list;
-  }, [layout.vpcs, layout.tray]);
+  }, [layout.vpcs, layout.trays]);
 
   const lanes = useMemo<BoxItem[]>(
     () =>
