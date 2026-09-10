@@ -53,6 +53,9 @@ export interface TopologyMeta {
   accountId?: string;
   generatedAt: string; // ISO timestamp
   seed?: number; // generator only
+  // Set by anonymizeGraph: names, ids, account id and IPs are stand-ins.
+  // 익명화된 그래프임을 표시한다 (이름·ID·계정 ID·IP가 치환된 값).
+  anonymized?: boolean;
 }
 
 export interface TopologyVpc {

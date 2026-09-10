@@ -35,6 +35,8 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - 채팅은 필터 패치만 만든다. 씬을 직접 건드리지 않는다. 프롬프트에는 스키마 + 현재 필터 + 그래프 요약만
 - 성능: 노드는 종류별 `InstancedMesh`, 엣지는 단일 `LineSegments`, 라벨 상한, `frameloop="demand"`, 레이아웃은 `useMemo`
 - 클러스터링 임계값 기본 24 (`config.topology3d.clusterThreshold`). 펼침 상태는 UI 상태, 필터 아님
+- 생성기는 결정적이다. 같은 `(params, seed, opts.now)`는 같은 그래프. 픽스처는 `npm run fixtures:build`로 재생성하며 diff가 없어야 한다
+- 익명화(`anonymize.ts`)는 식별 정보(계정 ID·이름 태그·리소스 ID·IP·CIDR)만 바꾸고 AWS 어휘는 그대로 둔다. 이후에도 `validateGraph`가 빈 배열이어야 한다
 - 순수 함수(filter, layout3d, generator)는 vitest 테스트 필수 (`npm test`)
 
 ### 테마
@@ -47,13 +49,13 @@ AI는 Bedrock 직접 호출만 쓴다(토폴로지 채팅, AI 종합 진단). Ag
 - `src/lib/queries/*.ts` — SQL 쿼리 파일 (`relationships.ts`가 토폴로지 원천)
 - `src/lib/app-config.ts` — `data/config.json` 로더. `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — ALB 헤더/쿠키 없으면 `anonymous`
-- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, Live 어댑터, vitest (ADR-010)
+- `src/lib/topology/` — `TopologyGraph` 계약, `applyFilter`, 어댑터 3종(live/fixture/generator), `anonymize.ts`, `fixtures/`, vitest (ADR-010)
 - `src/lib/fossflow/generator.ts` — 기존 Topology View(FossFLOW) 모델 생성기. `TopologyGraph`를 입력으로 받음
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI 종합 진단 (Bedrock 직접 호출, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — 대시보드 쿼리 프리워밍 (4분 주기)
 - `src/app/api/steampipe/route.ts` — 쿼리 실행 + 계정 관리 (관리자 게이팅)
 - `infra-cdk/lib/awsops-stack.ts` — EC2 + 롤 + SG
-- `scripts/` — `00`(CDK 배포, 로컬) `01~03`(설치·빌드) `09/10`(시작/중지) `11`(검증) `13`(Steampipe systemd)
+- `scripts/` — `00`(CDK 배포, 로컬) `01~03`(설치·빌드) `09/10`(시작/중지) `11`(검증) `13`(Steampipe systemd) · `build-topology-fixtures.ts`(픽스처 재생성, `npm run fixtures:build`)
 
 ### 설정 파일 (`data/config.json`, gitignore)
 ```json
@@ -124,6 +126,8 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - Chat only produces filter patches; it never touches the scene. Prompt carries schema + current filter + graph summary only
 - Performance: per-kind `InstancedMesh`, one `LineSegments` for edges, label cap, `frameloop="demand"`, layout in `useMemo`
 - Cluster threshold defaults to 24 (`config.topology3d.clusterThreshold`). Expanded state is UI state, not filter
+- The generator is deterministic: the same `(params, seed, opts.now)` gives the same graph. Fixtures are rebuilt with `npm run fixtures:build` and must produce no diff
+- `anonymize.ts` replaces identity only (account id, Name tags, resource ids, IPs, CIDRs) and leaves AWS vocabulary intact; `validateGraph` must still pass afterwards
 - Pure functions (filter, layout3d, generator) need vitest tests (`npm test`)
 
 ### Theme
@@ -136,13 +140,13 @@ AI is direct Bedrock only (topology chat, AI diagnosis). AgentCore, Cognito, ALB
 - `src/lib/queries/*.ts` — SQL query files (`relationships.ts` feeds the topology)
 - `src/lib/app-config.ts` — `data/config.json` loader: `singleUser`, `topology3d`, `accounts[]`, `adminEmails`
 - `src/lib/auth-utils.ts` — falls back to `anonymous` without ALB header/cookie
-- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, live adapter, vitest (ADR-010)
+- `src/lib/topology/` — `TopologyGraph` contract, `applyFilter`, three adapters (live/fixture/generator), `anonymize.ts`, `fixtures/`, vitest (ADR-010)
 - `src/lib/fossflow/generator.ts` — existing Topology View (FossFLOW) model generator, now fed a `TopologyGraph`
 - `src/lib/report-*.ts`, `src/app/api/report/` — AI diagnosis (direct Bedrock, DOCX/PDF)
 - `src/lib/cache-warmer.ts` — dashboard query pre-warming (4 min)
 - `src/app/api/steampipe/route.ts` — query execution + account management (admin gating)
 - `infra-cdk/lib/awsops-stack.ts` — EC2 + role + SG
-- `scripts/` — `00` (CDK deploy, local) `01~03` (install/build) `09/10` (start/stop) `11` (verify) `13` (Steampipe systemd)
+- `scripts/` — `00` (CDK deploy, local) `01~03` (install/build) `09/10` (start/stop) `11` (verify) `13` (Steampipe systemd) · `build-topology-fixtures.ts` (fixture rebuild, `npm run fixtures:build`)
 
 ## Deployment (SSM only)
 1. Local: `VPC_ID=... SUBNET_ID=... bash scripts/00-deploy-infra.sh`

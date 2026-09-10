@@ -25,6 +25,9 @@
 - `charts/LineChartCard.tsx` — 라인 차트
 - `charts/PieChartCard.tsx` — 파이 차트
 
+### topology3d/ — 3D 토폴로지 UI (1, Phase 2)
+- `topology3d/SourcePanel.tsx` — Live / Fixture / Generator 소스 전환. 상태는 `@/hooks/useTopologySource`가 소유 (`src/components/topology3d/CLAUDE.md`)
+
 ### table/ — 데이터 테이블 (1)
 - `table/DataTable.tsx` — 범용 데이터 테이블 (정렬, render 함수, 멀티어카운트 시 Account 컬럼 자동 추가)
 
