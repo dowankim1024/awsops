@@ -26,7 +26,7 @@ Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 �
 - `cloudfront-cdn/page.tsx` — CloudFront 배포
 - `waf/page.tsx` — WAF Web ACL/규칙
 - `topology/page.tsx` — 인프라 맵 + K8s 맵 (React Flow)
-- `topology-3d/page.tsx` — 3D 토폴로지 (R3F). 소스 패널 · 씬 · 인스펙터 3열. 필터·펼침·선택 상태를 페이지가 들고 `applyFilter → computeLayout`(useMemo) 결과만 씬에 준다. 씬은 `dynamic(..., { ssr: false })`. `clusterThreshold`·`defaultSource`는 `/api/steampipe?action=config`의 `topology3d`
+- `topology-3d/page.tsx` — 3D 토폴로지 (R3F). 소스+필터 패널 · 씬 · 인스펙터/채팅 탭 3열. 필터는 `useTopologyFilter`(URL 동기화, `Suspense` 필요)가 들고 체크박스·툴바·채팅이 같은 `patch`를 쓴다. 펼침·선택은 페이지 상태. `applyFilter → computeLayout`(useMemo) 결과만 씬에 준다. 씬은 `dynamic(..., { ssr: false })`. `clusterThreshold`·`defaultSource`는 `/api/steampipe?action=config`의 `topology3d` (ADR-012, ADR-013)
 
 ### Storage & DB (7)
 - `ebs/page.tsx` — EBS 볼륨/스냅샷 (암호화, EC2 어태치먼트 매핑)
@@ -77,6 +77,7 @@ Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 �
 | `api/k8s/route.ts` | EKS kubeconfig 등록 |
 | `api/report/route.ts` | AI 종합 진단 리포트 생성 + S3 저장 + 스케줄링 + DOCX/MD/PDF 다운로드 (`download-pdf`는 Puppeteer 서버 렌더링) |
 | `api/notification/route.ts` | SNS 이메일 알림 (토픽/구독 관리, 진단 완료 알림) |
+| `api/topology3d-chat/route.ts` | 3D 토폴로지 필터 채팅 — Bedrock `ConverseStream` + `set_filter` 도구, SSE(`text`/`filter`/`done`/`error`). 그래프 대신 요약만 프롬프트에, 패치는 서버 검증 후 전달. 실제 Bedrock 과금 (ADR-013) |
 
 ## 규칙
 - 모든 페이지 파일은 `'use client'`로 시작
@@ -115,7 +116,7 @@ Next.js 14 App Router pages and API routes. Each subdirectory is a route segment
 - `cloudfront-cdn/page.tsx` — CloudFront distributions
 - `waf/page.tsx` — WAF Web ACLs/rules
 - `topology/page.tsx` — Infra Map + K8s Map (React Flow)
-- `topology-3d/page.tsx` — 3D topology (R3F). Three columns: source panel · scene · inspector. The page owns filter, expanded and selection state and hands the scene only the memoised `applyFilter → computeLayout` result. The scene is loaded with `dynamic(..., { ssr: false })`. `clusterThreshold` / `defaultSource` come from `topology3d` in `/api/steampipe?action=config`
+- `topology-3d/page.tsx` — 3D topology (R3F). Three columns: source + filter panels · scene · inspector / chat tabs. The filter lives in `useTopologyFilter` (URL-synced, needs `Suspense`) and checkboxes, toolbar and chat share its `patch`. Expansion and selection are page state. The scene gets only the memoised `applyFilter → computeLayout` result and is loaded with `dynamic(..., { ssr: false })`. `clusterThreshold` / `defaultSource` come from `topology3d` in `/api/steampipe?action=config` (ADR-012, ADR-013)
 
 ### Storage & DB (7)
 - `ebs/page.tsx` — EBS volumes/snapshots (encryption, EC2 attachment mapping)
@@ -166,6 +167,7 @@ Next.js 14 App Router pages and API routes. Each subdirectory is a route segment
 | `api/k8s/route.ts` | EKS kubeconfig registration |
 | `api/report/route.ts` | AI diagnosis report generation + S3 storage + scheduling + DOCX/MD/PDF download (`download-pdf` renders server-side via Puppeteer) |
 | `api/notification/route.ts` | SNS email notifications (topic/subscription management, diagnosis completion alerts) |
+| `api/topology3d-chat/route.ts` | 3D topology filter chat — Bedrock `ConverseStream` + `set_filter` tool, SSE (`text`/`filter`/`done`/`error`). Prompt carries a summary instead of the graph; patches are validated server-side. Real Bedrock usage (ADR-013) |
 
 ## Rules
 - All page files start with `'use client'`

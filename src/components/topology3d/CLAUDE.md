@@ -1,7 +1,7 @@
 # 3D 토폴로지 컴포넌트 (`src/components/topology3d/`)
 
 ## 역할
-3D 토폴로지 뷰의 UI. 렌더러는 `Layout3D`(`@/lib/topology/layout3d`)만 받고 좌표를 계산하지 않으며 Steampipe를 모른다. 상태는 페이지(`src/app/topology-3d/page.tsx`)와 훅(`@/hooks/useTopologySource`, Phase 4의 `useTopologyFilter`)이 들고, 컴포넌트는 받은 것을 그리고 콜백만 호출한다. ADR-012 참조.
+3D 토폴로지 뷰의 UI. 렌더러는 `Layout3D`(`@/lib/topology/layout3d`)만 받고 좌표를 계산하지 않으며 Steampipe를 모른다. 상태는 페이지(`src/app/topology-3d/page.tsx`)와 훅(`@/hooks/useTopologySource`, `@/hooks/useTopologyFilter`)이 들고, 컴포넌트는 받은 것을 그리고 콜백만 호출한다. ADR-012 참조.
 
 ```
 page: graph ─ applyFilter ─ computeLayout(useMemo) ─► Layout3D ─► Scene(Canvas)
@@ -11,6 +11,7 @@ page: graph ─ applyFilter ─ computeLayout(useMemo) ─► Layout3D ─► Sc
                                                           ├─ Labels          troika Text (상한 96, 거리 컬링) + 호버 빌보드 1
                                                           └─ PerfProbe ─► perfStore ◄─ PerfHud (HTML 오버레이)
       selection / expanded ◄──── Inspector (HTML) ────────────────────────────────┘
+      filter (useTopologyFilter ↔ URL) ◄── FilterPanel (HTML) · ChatPanel (HTML, SSE ◄─ /api/topology3d-chat)
 ```
 
 ## 파일
@@ -27,12 +28,13 @@ page: graph ─ applyFilter ─ computeLayout(useMemo) ─► Layout3D ─► Sc
 | `palette.ts` | 종류별 형태(`KIND_SHAPES`)와 지오메트리(`makeGeometry`), 상태·호버·선택 색 규칙(`nodeColor`). `colors.ts`를 재내보냄 | O |
 | `colors.ts` | 종류·엣지·바닥·라벨 색 상수, `isInactiveState`. **three 미사용** | X |
 | `perfStore.ts` | 프로브와 HUD가 공유하는 외부 스토어 (`useSyncExternalStore`) | X |
-| (Phase 4) `FilterPanel.tsx` `ChatPanel.tsx` | 필터 체크박스, 자연어 채팅 | X |
+| `FilterPanel.tsx` | 티어·빈 서브넷·AZ·종류(VPC/전역) 체크박스, 검색(200ms 디바운스), 초기화, 링크 복사. 개수는 필터 전 그래프에서 센다. 패치만 낸다 | X |
+| `ChatPanel.tsx` | 자연어 → `/api/topology3d-chat`(SSE). 최근 10턴 + 현재 필터 + `summarizeGraph`를 보내고 텍스트를 스트리밍, `filter` 이벤트의 패치를 `onPatch`로 적용. 메시지마다 적용 전 필터를 기억해 되돌리기, `diffFilter` 칩, `rejected` 표시. 중지(AbortController), 제안 칩 | X |
 
 ## 규칙
 - 모든 파일 `'use client'`. `export default` 컴포넌트 (`PerfProbe`, `toNodeItems`처럼 보조는 named)
 - three/R3F를 import하는 파일(표의 O)은 `Scene.tsx`를 통해서만 페이지에 닿는다. 페이지는 `dynamic(() => import('@/components/topology3d/Scene'), { ssr: false })`. HTML 패널(`Inspector`, `SourcePanel`)은 `colors.ts`만 쓰고 `palette.ts`를 import하지 않는다
-- **컴포넌트는 상태를 소유하지 않는다.** 선택·펼침·필터는 페이지, 소스는 훅, 호버만 `Scene` 로컬
+- **컴포넌트는 상태를 소유하지 않는다.** 필터는 `useTopologyFilter`(URL 동기화), 소스는 `useTopologySource`, 선택·펼침은 페이지, 호버만 `Scene` 로컬. `FilterPanel`·`ChatPanel`·툴바는 `TopologyFilterPatch`를 `onPatch`로 낼 뿐 필터를 직접 바꾸지 않는다 (ADR-013)
 - 좌표를 계산하지 않는다. 위치·크기·라벨·엣지 끝점은 `Layout3D`에서 온다. 배치를 바꾸려면 `src/lib/topology/layout3d.ts`
 - 성능: 노드는 종류별 `InstancedMesh`, 엣지는 단일 `LineSegments`, 라벨 상한, `frameloop="demand"`. 필터가 바뀌어도 씬을 새로 만들지 않고 인스턴스 행렬·색만 갱신한다. `InstancedMesh`는 인스턴스 수가 바뀔 때만 `key`로 재생성
 - 매 프레임 도는 코드(`useFrame`)에서 React 상태를 바꾸지 않는다. 수치는 `perfStore`, 가시성은 `visible` 직접 토글
@@ -45,7 +47,7 @@ page: graph ─ applyFilter ─ computeLayout(useMemo) ─► Layout3D ─► Sc
 # 3D Topology Components (English)
 
 ## Role
-UI for the 3D topology view. The renderer consumes `Layout3D` (`@/lib/topology/layout3d`), computes no positions and never sees Steampipe. State lives in the page (`src/app/topology-3d/page.tsx`) and its hooks (`@/hooks/useTopologySource`, `useTopologyFilter` in Phase 4); components draw what they are handed and call back. See ADR-012.
+UI for the 3D topology view. The renderer consumes `Layout3D` (`@/lib/topology/layout3d`), computes no positions and never sees Steampipe. State lives in the page (`src/app/topology-3d/page.tsx`) and its hooks (`@/hooks/useTopologySource`, `@/hooks/useTopologyFilter`); components draw what they are handed and call back. See ADR-012.
 
 ## Files
 | File | Role | three |
@@ -61,12 +63,13 @@ UI for the 3D topology view. The renderer consumes `Layout3D` (`@/lib/topology/l
 | `palette.ts` | Shapes per kind (`KIND_SHAPES`), geometry (`makeGeometry`), state / hover / selection colour rule (`nodeColor`). Re-exports `colors.ts` | yes |
 | `colors.ts` | Kind / edge / ground / label colours, `isInactiveState`. **No three.js** | no |
 | `perfStore.ts` | External store shared by probe and HUD (`useSyncExternalStore`) | no |
-| (Phase 4) `FilterPanel.tsx` `ChatPanel.tsx` | Checkbox filters, natural-language chat | no |
+| `FilterPanel.tsx` | Tier / empty-subnet / AZ / kind (VPC vs global) checkboxes, search (200ms debounce), reset, copy link. Counts come from the unfiltered graph. Emits patches only | no |
+| `ChatPanel.tsx` | Natural language → `/api/topology3d-chat` (SSE). Sends the last 10 turns + current filter + `summarizeGraph`, streams text, applies the `filter` event's patch through `onPatch`. Each message remembers the filter before it for undo, shows `diffFilter` chips and `rejected` items. Stop (AbortController), suggestion chips | no |
 
 ## Rules
 - Every file is `'use client'` with a `export default` component (helpers such as `PerfProbe`, `toNodeItems` are named exports)
 - Files that import three/R3F (marked yes) reach the page only through `Scene.tsx`, loaded as `dynamic(() => import('@/components/topology3d/Scene'), { ssr: false })`. HTML panels (`Inspector`, `SourcePanel`) use `colors.ts` and never import `palette.ts`
-- **Components own no state.** Selection, expansion and filter belong to the page, the source to its hook; only hover is `Scene`-local
+- **Components own no state.** The filter belongs to `useTopologyFilter` (URL-synced), the source to `useTopologySource`, selection and expansion to the page; only hover is `Scene`-local. `FilterPanel`, `ChatPanel` and the toolbar emit a `TopologyFilterPatch` through `onPatch` and never mutate the filter (ADR-013)
 - Never compute positions here; position, size, labels and edge endpoints come from `Layout3D`. Change placement in `src/lib/topology/layout3d.ts`
 - Performance: one `InstancedMesh` per kind, one `LineSegments` for all edges, a label cap, `frameloop="demand"`. A filter change updates instance matrices and colours instead of rebuilding the scene; an `InstancedMesh` is re-created (via `key`) only when its instance count changes
 - Never set React state from per-frame code (`useFrame`): numbers go to `perfStore`, visibility is toggled on `visible` directly
