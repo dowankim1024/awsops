@@ -1,0 +1,639 @@
+// Generator adapter: GeneratorParams + seed -> TopologyGraph.
+// Deterministic by construction (mulberry32 PRNG, fixed call order), so the same
+// seed and params always produce byte-identical output. Used for scale testing
+// without AWS credentials and as the source of the stress fixture.
+// 결정적 생성기. 같은 시드·파라미터는 항상 같은 그래프를 낸다. 자격증명 없이 규모 테스트에 쓴다.
+import {
+  type NodeKind,
+  type TopologyEdge,
+  type TopologyGraph,
+  type TopologyNode,
+  type TopologySubnet,
+  type TopologyVpc,
+} from '../types';
+
+// ---- params ----
+
+export interface GeneratorParams {
+  seed: number;
+  vpcs: number; // 1~4
+  azsPerVpc: number; // 1~4
+  subnetsPerAzPerTier: number; // 1~4
+  ec2PerSubnet: [number, number]; // inclusive range, private subnets / 프라이빗 서브넷 기준 범위
+  // Public subnets hold bastions and little else, so they get their own smaller
+  // range instead of the private one. Defaults to [0, 2].
+  // 퍼블릭 서브넷은 배스천 정도만 두므로 별도의 작은 범위를 쓴다. 기본 [0, 2].
+  ec2PerPublicSubnet?: [number, number];
+  albsPerVpc: number;
+  natPerAz: 0 | 1;
+  lambdaPerVpc: number;
+  rdsPerVpc: number;
+  // Counts for every other kind. VPC-scoped kinds (nlb, endpoint, elasticache,
+  // msk, opensearch, eks, tgw) are spread round-robin across VPCs; account-global
+  // kinds (s3, dynamodb, cloudfront, route53) are created once for the account.
+  // 그 밖의 종류별 개수. VPC 귀속 종류는 VPC에 라운드로빈, 계정 전역 종류는 계정 단위로 만든다.
+  extras: Partial<Record<NodeKind, number>>;
+}
+
+export interface GeneratorOptions {
+  now?: Date; // injectable for deterministic output / 결정적 산출을 위한 고정 시각
+  region?: string;
+  accountId?: string;
+}
+
+const DEFAULT_REGION = 'ap-northeast-2';
+const DEFAULT_ACCOUNT_ID = '815090125359';
+// Fixed epoch so a preset regenerated tomorrow still equals today's file.
+// 고정 시각. 내일 다시 만들어도 오늘 파일과 같아야 한다.
+const DEFAULT_NOW = new Date('2026-01-01T00:00:00.000Z');
+
+export const PRESETS: Record<'small' | 'medium' | 'large' | 'stress', GeneratorParams> = {
+  small: {
+    seed: 1,
+    vpcs: 1,
+    azsPerVpc: 2,
+    subnetsPerAzPerTier: 1,
+    ec2PerSubnet: [4, 10],
+    albsPerVpc: 1,
+    natPerAz: 1,
+    lambdaPerVpc: 3,
+    rdsPerVpc: 1,
+    extras: { endpoint: 2, elasticache: 1, s3: 5, dynamodb: 3 },
+  },
+  medium: {
+    seed: 2,
+    vpcs: 1,
+    azsPerVpc: 3,
+    subnetsPerAzPerTier: 2,
+    ec2PerSubnet: [8, 20],
+    albsPerVpc: 2,
+    natPerAz: 1,
+    lambdaPerVpc: 8,
+    rdsPerVpc: 2,
+    extras: {
+      nlb: 1,
+      endpoint: 4,
+      elasticache: 2,
+      msk: 1,
+      opensearch: 1,
+      eks: 1,
+      s3: 12,
+      dynamodb: 6,
+      cloudfront: 2,
+      route53: 2,
+    },
+  },
+  large: {
+    seed: 3,
+    vpcs: 2,
+    azsPerVpc: 3,
+    subnetsPerAzPerTier: 2,
+    ec2PerSubnet: [20, 40],
+    albsPerVpc: 3,
+    natPerAz: 1,
+    lambdaPerVpc: 12,
+    rdsPerVpc: 3,
+    extras: {
+      nlb: 2,
+      tgw: 2,
+      endpoint: 8,
+      elasticache: 4,
+      msk: 2,
+      opensearch: 2,
+      eks: 2,
+      s3: 24,
+      dynamodb: 12,
+      cloudfront: 4,
+      route53: 3,
+    },
+  },
+  // Success criterion of the plan: >= 1,000 EC2, >= 30 subnets, 2 VPCs.
+  // 계획서 성공 기준: EC2 1,000대 이상, 서브넷 30개 이상, VPC 2개.
+  stress: {
+    seed: 4,
+    vpcs: 2,
+    azsPerVpc: 4,
+    subnetsPerAzPerTier: 2,
+    ec2PerSubnet: [48, 78],
+    albsPerVpc: 4,
+    natPerAz: 1,
+    lambdaPerVpc: 20,
+    rdsPerVpc: 4,
+    extras: {
+      nlb: 4,
+      tgw: 2,
+      endpoint: 12,
+      elasticache: 6,
+      msk: 2,
+      opensearch: 2,
+      eks: 2,
+      s3: 40,
+      dynamodb: 20,
+      cloudfront: 6,
+      route53: 4,
+    },
+  },
+};
+
+export const PRESET_NAMES = Object.keys(PRESETS) as (keyof typeof PRESETS)[];
+export const DEFAULT_PARAMS: GeneratorParams = PRESETS.medium;
+
+// ---- PRNG ----
+
+// mulberry32: 32-bit seed, no dependencies, identical across Node and browsers.
+// 의존성 없는 32비트 PRNG. Node와 브라우저에서 결과가 같다.
+export function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+class Rng {
+  private next: () => number;
+  constructor(seed: number) {
+    this.next = mulberry32(seed);
+  }
+  float(): number {
+    return this.next();
+  }
+  int(min: number, max: number): number {
+    if (max <= min) return min;
+    return min + Math.floor(this.next() * (max - min + 1));
+  }
+  pick<T>(arr: readonly T[]): T {
+    return arr[Math.floor(this.next() * arr.length)];
+  }
+  chance(p: number): boolean {
+    return this.next() < p;
+  }
+  hex(len: number): string {
+    let out = '';
+    for (let i = 0; i < len; i += 1) out += '0123456789abcdef'[Math.floor(this.next() * 16)];
+    return out;
+  }
+  // AWS long-form resource id: prefix + 17 chars starting with 0 (i-0a1b…).
+  // AWS 장문 리소스 ID 형식.
+  awsId(prefix: string): string {
+    return `${prefix}-0${this.hex(16)}`;
+  }
+}
+
+// ---- vocabulary ----
+
+const AZ_LETTERS = ['a', 'b', 'c', 'd'] as const;
+const ENVS = ['prod', 'stage', 'dev', 'shared'] as const;
+const APP_ROLES = ['web', 'api', 'worker', 'batch', 'search', 'stream'] as const;
+const INSTANCE_TYPES = [
+  'm6i.large',
+  'm6i.xlarge',
+  'c6i.large',
+  'c6i.2xlarge',
+  'r6i.large',
+  't3.medium',
+  't3.large',
+] as const;
+const RDS_ENGINES = ['aurora-mysql', 'aurora-postgresql', 'postgres', 'mysql'] as const;
+const LAMBDA_RUNTIMES = ['nodejs20.x', 'python3.12', 'java21', 'provided.al2023'] as const;
+const LAMBDA_VERBS = ['sync', 'ingest', 'notify', 'rotate', 'expire', 'index', 'audit', 'resize'] as const;
+const LAMBDA_NOUNS = ['orders', 'catalog', 'users', 'images', 'events', 'invoices', 'sessions'] as const;
+const ENDPOINT_SERVICES = [
+  's3',
+  'dynamodb',
+  'ecr.api',
+  'ecr.dkr',
+  'ssm',
+  'ssmmessages',
+  'ec2messages',
+  'logs',
+  'monitoring',
+  'secretsmanager',
+  'kms',
+  'sts',
+] as const;
+const BUCKET_NOUNS = ['assets', 'logs', 'backup', 'artifacts', 'reports', 'uploads', 'exports', 'tfstate'] as const;
+const TABLE_NOUNS = ['orders', 'sessions', 'carts', 'inventory', 'events', 'coupons', 'reviews'] as const;
+const ZONE_NAMES = ['example.com', 'internal.example.com', 'api.example.com', 'cdn.example.com'] as const;
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+const clamp = (v: number, lo: number, hi: number): number =>
+  Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.floor(v))) : lo;
+
+const clampRange = (r: [number, number] | undefined, fallback: [number, number]): [number, number] => {
+  const src = Array.isArray(r) && r.length === 2 ? r : fallback;
+  const lo = clamp(src[0], 0, 500);
+  const hi = clamp(src[1], lo, 500);
+  return [lo, hi];
+};
+
+// Out-of-range params are clamped rather than rejected: the slider UI can only
+// produce sane values, and a bad fixture should still render something.
+// 범위를 벗어난 값은 거절하지 않고 자른다.
+export function normalizeParams(p: Partial<GeneratorParams> = {}): GeneratorParams {
+  const base = DEFAULT_PARAMS;
+  return {
+    seed: Number.isFinite(p.seed) ? (p.seed as number) >>> 0 : base.seed,
+    vpcs: clamp(p.vpcs ?? base.vpcs, 1, 4),
+    azsPerVpc: clamp(p.azsPerVpc ?? base.azsPerVpc, 1, AZ_LETTERS.length),
+    subnetsPerAzPerTier: clamp(p.subnetsPerAzPerTier ?? base.subnetsPerAzPerTier, 1, 4),
+    ec2PerSubnet: clampRange(p.ec2PerSubnet, base.ec2PerSubnet),
+    ec2PerPublicSubnet: clampRange(p.ec2PerPublicSubnet, [0, 2]),
+    albsPerVpc: clamp(p.albsPerVpc ?? base.albsPerVpc, 0, 12),
+    natPerAz: (p.natPerAz ?? base.natPerAz) ? 1 : 0,
+    lambdaPerVpc: clamp(p.lambdaPerVpc ?? base.lambdaPerVpc, 0, 200),
+    rdsPerVpc: clamp(p.rdsPerVpc ?? base.rdsPerVpc, 0, 40),
+    extras: { ...(p.extras ?? base.extras) },
+  };
+}
+
+// ---- generation ----
+
+interface SubnetPlan {
+  subnet: TopologySubnet;
+  index: number; // per-VPC ordinal, used for the /24 third octet
+}
+
+export function generateGraph(
+  params: Partial<GeneratorParams> = {},
+  opts: GeneratorOptions = {}
+): TopologyGraph {
+  const p = normalizeParams(params);
+  const region = opts.region ?? DEFAULT_REGION;
+  const accountId = opts.accountId ?? DEFAULT_ACCOUNT_ID;
+  const generatedAt = (opts.now ?? DEFAULT_NOW).toISOString();
+  const rng = new Rng(p.seed);
+
+  const vpcs: TopologyVpc[] = [];
+  const subnets: TopologySubnet[] = [];
+  const nodes: TopologyNode[] = [];
+  const edges: TopologyEdge[] = [];
+
+  const edgeIds = new Set<string>();
+  const addEdge = (kind: TopologyEdge['kind'], from: string, to: string, label?: string) => {
+    const id = `${kind}:${from}->${to}`;
+    if (edgeIds.has(id)) return;
+    edgeIds.add(id);
+    edges.push({ id, from, to, kind, ...(label ? { label } : {}) });
+  };
+
+  // Per-VPC bookkeeping used after the subnet pass (routes, targets, placement).
+  // 서브넷 생성 이후 라우팅·타겟·배치에 쓰는 VPC별 정보.
+  const perVpc: {
+    vpc: TopologyVpc;
+    env: string;
+    azs: string[];
+    publics: SubnetPlan[];
+    privates: SubnetPlan[];
+    igwId: string;
+    natByAz: Map<string, string>;
+    ec2ByRole: Map<string, string[]>;
+  }[] = [];
+
+  for (let v = 0; v < p.vpcs; v += 1) {
+    const env = ENVS[v % ENVS.length];
+    const octet = 10 + v;
+    const vpcId = rng.awsId('vpc');
+    const vpc: TopologyVpc = { id: vpcId, name: `${env}-vpc`, cidr: `10.${octet}.0.0/16` };
+    vpcs.push(vpc);
+
+    const azs = AZ_LETTERS.slice(0, p.azsPerVpc).map((l) => `${region}${l}`);
+    const publics: SubnetPlan[] = [];
+    const privates: SubnetPlan[] = [];
+    let subnetIndex = 0;
+
+    // Public subnets first so their /24s sit at the front of the VPC range, the
+    // way most hand-built VPCs look.
+    // 손으로 만든 VPC처럼 퍼블릭 /24를 앞쪽에 배치한다.
+    (['public', 'private'] as const).forEach((tier) => {
+      azs.forEach((az, aIdx) => {
+        for (let s = 0; s < p.subnetsPerAzPerTier; s += 1) {
+          const idx = subnetIndex;
+          subnetIndex += 1;
+          const plan: SubnetPlan = {
+            index: idx,
+            subnet: {
+              id: rng.awsId('subnet'),
+              vpcId,
+              az,
+              cidr: `10.${octet}.${idx}.0/24`,
+              tier,
+              name: `${env}-${tier}-${AZ_LETTERS[aIdx]}-${pad2(s + 1)}`,
+            },
+          };
+          subnets.push(plan.subnet);
+          (tier === 'public' ? publics : privates).push(plan);
+        }
+      });
+    });
+
+    const igwId = rng.awsId('igw');
+    perVpc.push({
+      vpc,
+      env,
+      azs,
+      publics,
+      privates,
+      igwId,
+      natByAz: new Map(),
+      ec2ByRole: new Map(),
+    });
+  }
+
+  const vpcOctet = (i: number) => 10 + i;
+
+  // ---- gateways ----
+  perVpc.forEach((V) => {
+    nodes.push({ id: V.igwId, kind: 'igw', name: `${V.env}-igw`, vpcId: V.vpc.id, meta: {} });
+    addEdge('attach', V.igwId, V.vpc.id);
+
+    if (p.natPerAz) {
+      V.azs.forEach((az, aIdx) => {
+        const host = V.publics.find((s) => s.subnet.az === az);
+        if (!host) return;
+        const natId = rng.awsId('nat');
+        V.natByAz.set(az, natId);
+        nodes.push({
+          id: natId,
+          kind: 'nat',
+          name: `${V.env}-nat-${AZ_LETTERS[aIdx]}`,
+          vpcId: V.vpc.id,
+          subnetId: host.subnet.id,
+          az,
+          state: 'available',
+          meta: {},
+        });
+        addEdge('egress', natId, V.igwId);
+      });
+    }
+  });
+
+  // ---- EC2 ----
+  perVpc.forEach((V, vIdx) => {
+    const octet = vpcOctet(vIdx);
+    let ordinal = 0;
+    const place = (plan: SubnetPlan, count: number, roles: readonly string[]) => {
+      const role = rng.pick(roles);
+      const type = rng.pick(INSTANCE_TYPES);
+      for (let i = 0; i < count; i += 1) {
+        ordinal += 1;
+        const id = rng.awsId('i');
+        const nameTag = `${V.env}-${role}-${pad2(ordinal)}`;
+        // A small share of stopped instances keeps the state colouring honest.
+        // 일부는 stopped로 두어 상태별 색 구분이 드러나게 한다.
+        const state = rng.chance(0.06) ? 'stopped' : 'running';
+        const host = 4 + (i % 250);
+        nodes.push({
+          id,
+          kind: 'ec2',
+          name: nameTag,
+          vpcId: V.vpc.id,
+          subnetId: plan.subnet.id,
+          az: plan.subnet.az,
+          state,
+          meta: {
+            nameTag,
+            instanceType: type,
+            privateIp: `10.${octet}.${plan.index}.${host}`,
+            publicIp: plan.subnet.tier === 'public' && state === 'running' ? `52.${rng.int(64, 95)}.${rng.int(0, 255)}.${rng.int(1, 254)}` : null,
+            eksCluster: null,
+          },
+        });
+        V.ec2ByRole.set(role, [...(V.ec2ByRole.get(role) || []), id]);
+      }
+    };
+    V.publics.forEach((plan) => place(plan, rng.int(p.ec2PerPublicSubnet![0], p.ec2PerPublicSubnet![1]), ['bastion']));
+    V.privates.forEach((plan) => place(plan, rng.int(p.ec2PerSubnet[0], p.ec2PerSubnet[1]), APP_ROLES));
+  });
+
+  // ---- routes: public -> igw, private -> NAT in the same AZ ----
+  perVpc.forEach((V) => {
+    V.publics.forEach((plan) => addEdge('route', plan.subnet.id, V.igwId, '0.0.0.0/0'));
+    V.privates.forEach((plan) => {
+      const nat = V.natByAz.get(plan.subnet.az) ?? Array.from(V.natByAz.values())[0];
+      if (nat) addEdge('route', plan.subnet.id, nat, '0.0.0.0/0');
+    });
+  });
+
+  // ---- load balancers ----
+  const lbTargets = (V: (typeof perVpc)[number], role: string): string[] => {
+    const pool = V.ec2ByRole.get(role) || Array.from(V.ec2ByRole.values()).flat();
+    return pool.slice(0, 60);
+  };
+  perVpc.forEach((V) => {
+    for (let i = 0; i < p.albsPerVpc; i += 1) {
+      const role = APP_ROLES[i % APP_ROLES.length];
+      const name = `${V.env}-${role}-alb`;
+      const id = `alb:${name}`;
+      const scheme = i === 0 ? 'internet-facing' : 'internal';
+      nodes.push({
+        id,
+        kind: 'alb',
+        name,
+        vpcId: V.vpc.id,
+        meta: {
+          arn: `arn:aws:elasticloadbalancing:${region}:${accountId}:loadbalancer/app/${name}/${rng.hex(16)}`,
+          scheme,
+          dnsName: `${name}-${rng.int(100000000, 999999999)}.${region}.elb.amazonaws.com`,
+          availabilityZones: V.azs,
+          securityGroups: [rng.awsId('sg')],
+        },
+      });
+      lbTargets(V, role).forEach((iid) => addEdge('target', id, iid));
+    }
+  });
+
+  // ---- extras ----
+  const extraCount = (k: NodeKind): number => clamp(p.extras[k] ?? 0, 0, 500);
+  const vpcAt = (i: number) => perVpc[i % perVpc.length];
+
+  for (let i = 0; i < extraCount('nlb'); i += 1) {
+    const V = vpcAt(i);
+    const name = `${V.env}-nlb-${pad2(i + 1)}`;
+    const id = `nlb:${name}`;
+    nodes.push({
+      id,
+      kind: 'nlb',
+      name,
+      vpcId: V.vpc.id,
+      meta: {
+        arn: `arn:aws:elasticloadbalancing:${region}:${accountId}:loadbalancer/net/${name}/${rng.hex(16)}`,
+        scheme: 'internal',
+        dnsName: `${name}-${rng.hex(16)}.elb.${region}.amazonaws.com`,
+        availabilityZones: V.azs,
+        securityGroups: null,
+      },
+    });
+    lbTargets(V, rng.pick(APP_ROLES)).slice(0, 20).forEach((iid) => addEdge('target', id, iid));
+  }
+
+  for (let i = 0; i < extraCount('tgw'); i += 1) {
+    const V = vpcAt(i);
+    const id = rng.awsId('tgw-attach');
+    const tgwId = rng.awsId('tgw');
+    nodes.push({
+      id,
+      kind: 'tgw',
+      name: `${V.env}-tgw-attach`,
+      vpcId: V.vpc.id,
+      state: 'available',
+      meta: { transitGatewayId: tgwId, resourceType: 'vpc' },
+    });
+    addEdge('attach', id, V.vpc.id);
+    // The private subnets route their inter-VPC traffic through the attachment.
+    // 프라이빗 서브넷은 VPC 간 트래픽을 이 어태치먼트로 보낸다.
+    V.privates.forEach((plan) => addEdge('route', plan.subnet.id, id, '10.0.0.0/8'));
+  }
+
+  for (let i = 0; i < extraCount('endpoint'); i += 1) {
+    const V = vpcAt(i);
+    const service = ENDPOINT_SERVICES[i % ENDPOINT_SERVICES.length];
+    const serviceName = `com.amazonaws.${region}.${service}`;
+    nodes.push({
+      id: rng.awsId('vpce'),
+      kind: 'endpoint',
+      name: service,
+      vpcId: V.vpc.id,
+      meta: {
+        serviceName,
+        endpointType: service === 's3' || service === 'dynamodb' ? 'Gateway' : 'Interface',
+      },
+    });
+  }
+
+  perVpc.forEach((V) => {
+    for (let i = 0; i < p.rdsPerVpc; i += 1) {
+      const engine = rng.pick(RDS_ENGINES);
+      const name = `${V.env}-${engine.replace('aurora-', '')}-${pad2(i + 1)}`;
+      nodes.push({
+        id: `rds:${name}`,
+        kind: 'rds',
+        name,
+        vpcId: V.vpc.id,
+        az: rng.pick(V.azs),
+        meta: {
+          engine,
+          instanceClass: rng.pick(['db.r6g.large', 'db.r6g.xlarge', 'db.t4g.medium']),
+          endpoint: `${name}.${rng.hex(12)}.${region}.rds.amazonaws.com`,
+        },
+      });
+    }
+  });
+
+  for (let i = 0; i < extraCount('elasticache'); i += 1) {
+    const V = vpcAt(i);
+    const name = `${V.env}-redis-${pad2(i + 1)}`;
+    nodes.push({
+      id: `elasticache:${name}`,
+      kind: 'elasticache',
+      name,
+      vpcId: V.vpc.id,
+      az: rng.pick(V.azs),
+      meta: { engine: 'redis' },
+    });
+  }
+
+  // MSK and OpenSearch span AZs: az/subnetId stay empty, placement goes in meta.
+  // MSK·OpenSearch는 다중 AZ라 az/subnetId를 비우고 meta에 배치를 담는다.
+  const spanning = (V: (typeof perVpc)[number]) => {
+    const picked = V.privates.slice(0, Math.min(3, V.privates.length));
+    return { subnetIds: picked.map((s) => s.subnet.id), azs: Array.from(new Set(picked.map((s) => s.subnet.az))).sort() };
+  };
+  for (let i = 0; i < extraCount('msk'); i += 1) {
+    const V = vpcAt(i);
+    const name = `${V.env}-kafka-${pad2(i + 1)}`;
+    nodes.push({ id: `msk:${name}`, kind: 'msk', name, vpcId: V.vpc.id, state: 'ACTIVE', meta: spanning(V) });
+  }
+  for (let i = 0; i < extraCount('opensearch'); i += 1) {
+    const V = vpcAt(i);
+    const name = `${V.env}-search-${pad2(i + 1)}`;
+    nodes.push({
+      id: `opensearch:${name}`,
+      kind: 'opensearch',
+      name,
+      vpcId: V.vpc.id,
+      meta: { ...spanning(V), engineVersion: 'OpenSearch_2.13' },
+    });
+  }
+
+  // EKS clusters are markers derived from instance tags in the live adapter, so
+  // here we tag a slice of the VPC's instances and add the matching marker node.
+  // Live 어댑터가 인스턴스 태그에서 EKS를 뽑으므로, 여기서도 인스턴스에 태그를 달고 마커를 만든다.
+  const ec2ById = new Map(nodes.filter((n) => n.kind === 'ec2').map((n) => [n.id, n]));
+  for (let i = 0; i < extraCount('eks'); i += 1) {
+    const V = vpcAt(i);
+    const cluster = `${V.env}-eks-${pad2(i + 1)}`;
+    nodes.push({ id: `eks:${cluster}`, kind: 'eks', name: cluster, vpcId: V.vpc.id, meta: {} });
+    const workers = (V.ec2ByRole.get('worker') || []).slice(0, 40);
+    workers.forEach((iid) => {
+      const n = ec2ById.get(iid);
+      if (n) n.meta.eksCluster = cluster;
+    });
+  }
+
+  perVpc.forEach((V) => {
+    for (let i = 0; i < p.lambdaPerVpc; i += 1) {
+      const name = `${V.env}-${rng.pick(LAMBDA_VERBS)}-${rng.pick(LAMBDA_NOUNS)}-${pad2(i + 1)}`;
+      const host = V.privates.length ? V.privates[i % V.privates.length] : null;
+      nodes.push({
+        id: `lambda:${name}`,
+        kind: 'lambda',
+        name,
+        vpcId: V.vpc.id,
+        subnetId: host?.subnet.id,
+        az: host?.subnet.az,
+        meta: {
+          runtime: rng.pick(LAMBDA_RUNTIMES),
+          subnetIds: host ? [host.subnet.id] : [],
+        },
+      });
+    }
+  });
+
+  // ---- account-global kinds ----
+  const suffix = rng.hex(6);
+  for (let i = 0; i < extraCount('s3'); i += 1) {
+    const name = `${ENVS[i % ENVS.length]}-${BUCKET_NOUNS[i % BUCKET_NOUNS.length]}-${suffix}-${pad2(i + 1)}`;
+    nodes.push({ id: `s3:${name}`, kind: 's3', name, meta: { region } });
+  }
+  for (let i = 0; i < extraCount('dynamodb'); i += 1) {
+    const name = `${ENVS[i % ENVS.length]}-${TABLE_NOUNS[i % TABLE_NOUNS.length]}-${pad2(i + 1)}`;
+    nodes.push({ id: `dynamodb:${name}`, kind: 'dynamodb', name, meta: {} });
+  }
+  for (let i = 0; i < extraCount('cloudfront'); i += 1) {
+    const distId = `E${rng.hex(12).toUpperCase()}`;
+    const alias = `cdn${pad2(i + 1)}.example.com`;
+    nodes.push({
+      id: `cloudfront:${distId}`,
+      kind: 'cloudfront',
+      name: alias,
+      meta: { distributionId: distId, domainName: `d${rng.hex(13)}.cloudfront.net`, aliases: [alias] },
+    });
+  }
+  for (let i = 0; i < extraCount('route53'); i += 1) {
+    const zone = ZONE_NAMES[i % ZONE_NAMES.length];
+    const name = i < ZONE_NAMES.length ? zone : `z${pad2(i + 1)}.${zone}`;
+    nodes.push({
+      id: `route53:${name}.`,
+      kind: 'route53',
+      name,
+      meta: { privateZone: name.startsWith('internal') },
+    });
+  }
+
+  return {
+    meta: { source: 'generator', accountId, generatedAt, seed: p.seed },
+    vpcs,
+    subnets,
+    nodes,
+    edges,
+  };
+}
+
+export const generateFromPreset = (
+  name: keyof typeof PRESETS,
+  opts: GeneratorOptions = {}
+): TopologyGraph => generateGraph(PRESETS[name], opts);
