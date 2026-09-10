@@ -64,6 +64,51 @@ function FitCamera({ layout, fitKey }: { layout: Layout3D; fitKey: string }) {
   return null;
 }
 
+// Makes sure the first frame is actually drawn. `invalidate()` returns early
+// while `internal.active` is false, and R3F flags that in the Provider's own
+// layout effect — which React runs AFTER every child's. So every invalidate the
+// layers fire on mount (Ground, InstancedNodes, Edges, FitCamera…) is dropped,
+// and in `demand` mode nothing else asks for a frame: the canvas stays blank
+// until the user happens to orbit or press "fit". Asking one animation frame
+// later lands after activation. Re-running it on a size change also covers a
+// canvas that was measured at zero (a collapsed panel, a hidden tab).
+// 첫 프레임이 실제로 그려지도록 보장한다. `invalidate()`는 `internal.active`가 false면 그냥
+// 돌아가고, R3F는 그 플래그를 Provider의 layout effect에서 켠다 — React는 자식 effect를 먼저
+// 실행한다. 그래서 각 레이어가 마운트에서 호출하는 invalidate가 전부 버려지고, demand 모드에서는
+// 아무도 프레임을 요청하지 않아 사용자가 화면을 돌리거나 "화면 맞춤"을 누를 때까지 캔버스가 빈
+// 채로 남는다. rAF 한 번 뒤에 요청하면 활성화 이후에 도달한다. 크기가 0으로 측정된 경우(접힌 패널,
+// 숨은 탭)는 크기 변경 때 다시 돌면서 덮인다.
+function KeepPainted() {
+  const invalidate = useThree((s) => s.invalidate);
+  const width = useThree((s) => s.size.width);
+  const height = useThree((s) => s.size.height);
+
+  useEffect(() => {
+    if (width <= 0 || height <= 0) return;
+    const raf = requestAnimationFrame(() => invalidate());
+    return () => cancelAnimationFrame(raf);
+  }, [invalidate, width, height]);
+
+  // A hidden tab or a collapsed panel stops requestAnimationFrame, which is the
+  // only thing driving the demand loop, so any invalidate raised while away is
+  // lost. Ask again once we are back on screen.
+  // 숨은 탭·접힌 패널에서는 rAF가 멈추고 demand 루프를 돌릴 것이 rAF뿐이라, 그동안의 invalidate는
+  // 사라진다. 다시 보이게 되면 한 번 더 요청한다.
+  useEffect(() => {
+    const wake = () => {
+      if (document.visibilityState === 'visible') requestAnimationFrame(() => invalidate());
+    };
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    return () => {
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
+    };
+  }, [invalidate]);
+
+  return null;
+}
+
 // R3F v8 does not re-apply a changed `frameloop` prop on the Canvas, so the
 // switch between demand (idle) and always (flow animation) is made here, with
 // an invalidate to restart the loop.
@@ -146,6 +191,7 @@ export default function Scene({
     return new Set(layout.edgeIndexByElement.get(selectedId) ?? []);
   }, [layout, selectedId]);
   const expandable = useMemo(() => new Set(layout.subnets.filter((s) => s.expandable).map((s) => s.id)), [layout.subnets]);
+
   const frameloop = flow ? 'always' : 'demand';
 
   return (
@@ -171,6 +217,7 @@ export default function Scene({
           maxDistance={900}
         />
         <FrameloopSync mode={frameloop} />
+        <KeepPainted />
         <FitCamera layout={layout} fitKey={fitKey} />
         <Cursor active={Boolean(hoverId || (subnetHoverId && expandable.has(subnetHoverId)))} />
         <Ground
