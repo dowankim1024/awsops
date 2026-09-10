@@ -26,6 +26,7 @@ Next.js 14 App Router 페이지 및 API 라우트. 각 하위 디렉토리는 �
 - `cloudfront-cdn/page.tsx` — CloudFront 배포
 - `waf/page.tsx` — WAF Web ACL/규칙
 - `topology/page.tsx` — 인프라 맵 + K8s 맵 (React Flow)
+- `topology-3d/page.tsx` — 3D 토폴로지 (R3F). 소스 패널 · 씬 · 인스펙터 3열. 필터·펼침·선택 상태를 페이지가 들고 `applyFilter → computeLayout`(useMemo) 결과만 씬에 준다. 씬은 `dynamic(..., { ssr: false })`. `clusterThreshold`·`defaultSource`는 `/api/steampipe?action=config`의 `topology3d`
 
 ### Storage & DB (7)
 - `ebs/page.tsx` — EBS 볼륨/스냅샷 (암호화, EC2 어태치먼트 매핑)
@@ -114,6 +115,7 @@ Next.js 14 App Router pages and API routes. Each subdirectory is a route segment
 - `cloudfront-cdn/page.tsx` — CloudFront distributions
 - `waf/page.tsx` — WAF Web ACLs/rules
 - `topology/page.tsx` — Infra Map + K8s Map (React Flow)
+- `topology-3d/page.tsx` — 3D topology (R3F). Three columns: source panel · scene · inspector. The page owns filter, expanded and selection state and hands the scene only the memoised `applyFilter → computeLayout` result. The scene is loaded with `dynamic(..., { ssr: false })`. `clusterThreshold` / `defaultSource` come from `topology3d` in `/api/steampipe?action=config`
 
 ### Storage & DB (7)
 - `ebs/page.tsx` — EBS volumes/snapshots (encryption, EC2 attachment mapping)
